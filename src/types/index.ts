@@ -68,12 +68,44 @@ export interface GlobalStats {
   modelUsage: Record<string, TokenUsage>;
 }
 
+// ── New data types ─────────────────────────────────────────────────────────
+
+export interface HistoryEntry {
+  display: string;
+  timestamp: number;
+  project: string;
+  sessionId: string;
+}
+
+export interface TodoItem {
+  id: string;
+  content: string;
+  status: 'pending' | 'in_progress' | 'completed';
+}
+
+export interface Plan {
+  name: string;
+  content: string;
+}
+
+export interface ClaudeSettings {
+  hookCount: number;
+  hookTypes: Record<string, number>;
+  allowedTools: string[];
+  deniedTools: string[];
+}
+
+// ── WebSocket protocol ─────────────────────────────────────────────────────
+
 export type WsEventType =
   | 'initial_state'
   | 'session_added'
   | 'session_removed'
   | 'turns_updated'
-  | 'stats_updated';
+  | 'stats_updated'
+  | 'history_updated'
+  | 'todos_updated'
+  | 'plans_updated';
 
 export interface WsMessage<T = unknown> {
   type: WsEventType;
@@ -85,6 +117,10 @@ export interface InitialStateData {
   sessionStats: Record<string, SessionStats>;
   turns: Record<string, Turn[]>;
   globalStats: GlobalStats | null;
+  history: HistoryEntry[];
+  sessionTodos: Record<string, TodoItem[]>;
+  plans: Plan[];
+  settings: ClaudeSettings | null;
 }
 
 export interface SessionAddedData {
@@ -96,4 +132,16 @@ export interface TurnsUpdatedData {
   sessionId: string;
   newTurns: Turn[];
   stats: SessionStats;
+}
+
+export interface HistoryUpdatedData {
+  entries: HistoryEntry[];
+}
+
+export interface TodosUpdatedData {
+  todos: Record<string, TodoItem[]>;
+}
+
+export interface PlansUpdatedData {
+  plans: Plan[];
 }

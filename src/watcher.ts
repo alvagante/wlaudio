@@ -9,7 +9,16 @@ import {
   loadGlobalStats,
   CLAUDE_DIR,
 } from './parser.js';
-import type { ActiveSession, Turn, SessionStats, GlobalStats } from './types/index.js';
+import { loadHistory, loadAllTodos, loadPlans } from './data.js';
+import type {
+  ActiveSession,
+  Turn,
+  SessionStats,
+  GlobalStats,
+  HistoryEntry,
+  TodoItem,
+  Plan,
+} from './types/index.js';
 
 // ── Typed event emitter ────────────────────────────────────────────────────
 
@@ -18,6 +27,9 @@ interface WatcherEventMap {
   'session:removed': [sessionId: string];
   'turns:updated':   [sessionId: string, newTurns: Turn[], stats: SessionStats];
   'stats:updated':   [stats: GlobalStats | null];
+  'history:updated': [entries: HistoryEntry[]];
+  'todos:updated':   [todos: Record<string, TodoItem[]>];
+  'plans:updated':   [plans: Plan[]];
 }
 
 class WatcherEmitter extends EventEmitter {
@@ -61,6 +73,9 @@ export function getAllSessionStates(): SessionState[] {
 export function startWatcher(): void {
   const sessionsDir = join(CLAUDE_DIR, 'sessions');
   const statsPath   = join(CLAUDE_DIR, 'stats-cache.json');
+  const historyPath = join(CLAUDE_DIR, 'history.jsonl');
+  const todosDir    = join(CLAUDE_DIR, 'todos');
+  const plansDir    = join(CLAUDE_DIR, 'plans');
 
   // React to session file changes (processes starting/stopping)
   chokidar
@@ -73,6 +88,24 @@ export function startWatcher(): void {
   chokidar
     .watch(statsPath, { ignoreInitial: true })
     .on('change', () => emitter.emit('stats:updated', loadGlobalStats()));
+
+  // React to history updates (new prompts typed)
+  chokidar
+    .watch(historyPath, { ignoreInitial: true })
+    .on('change', () => emitter.emit('history:updated', loadHistory()));
+
+  // React to todos changes (created/updated during sessions)
+  chokidar
+    .watch(todosDir, { ignoreInitial: true, depth: 0 })
+    .on('add',    () => emitter.emit('todos:updated', loadAllTodos()))
+    .on('change', () => emitter.emit('todos:updated', loadAllTodos()));
+
+  // React to plans being created
+  chokidar
+    .watch(plansDir, { ignoreInitial: true, depth: 0 })
+    .on('add',    () => emitter.emit('plans:updated', loadPlans()))
+    .on('change', () => emitter.emit('plans:updated', loadPlans()))
+    .on('unlink', () => emitter.emit('plans:updated', loadPlans()));
 
   // Initial load
   syncSessions();
