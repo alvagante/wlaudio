@@ -79,6 +79,10 @@ export function startWatcher(): void {
 
   // Poll JSONL files for new turns (2-second interval is lightweight)
   setInterval(pollTurns, 2000);
+
+  // Re-sync periodically to catch sessions that started after initial load
+  // (Claude Code doesn't always update session files on new conversations)
+  setInterval(syncSessions, 30_000);
 }
 
 // ── Session sync ───────────────────────────────────────────────────────────

@@ -17,6 +17,7 @@ import type {
 } from './types/index.js';
 
 const PORT = Number(process.env['PORT'] ?? 4242);
+const HOST = process.env['HOST'] ?? 'localhost';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const publicDir  = join(__dirname, '..', 'public');
 
@@ -107,9 +108,9 @@ function send(ws: WebSocket, msg: WsMessage): void {
 export function startServer(): void {
   startWatcher();
 
-  httpServer.listen(PORT, () => {
+  httpServer.listen(PORT, HOST, () => {
     console.log(`\n  ⬡  Claude Monitor\n`);
-    console.log(`  http://localhost:${PORT}\n`);
+    console.log(`  http://${HOST}:${PORT}\n`);
   });
 }
 

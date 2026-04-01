@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync, existsSync } from 'fs';
+import { readFileSync, readdirSync, existsSync, statSync } from 'fs';
 import { join } from 'path';
 import type {
   ActiveSession,
@@ -9,7 +9,8 @@ import type {
   GlobalStats,
 } from './types/index.js';
 
-const HOME = process.env['HOME'] ?? '/Users/al';
+const HOME = process.env['HOME'];
+if (!HOME) throw new Error('HOME environment variable is not set');
 export const CLAUDE_DIR = join(HOME, '.claude');
 
 export function encodePath(p: string): string {
@@ -20,11 +21,34 @@ export function getSessionFilePath(session: ActiveSession): string {
   return join(CLAUDE_DIR, 'projects', encodePath(session.cwd), `${session.sessionId}.jsonl`);
 }
 
+// Claude Code doesn't always update ~/.claude/sessions/{pid}.json when a new
+// conversation starts in the same process. This helper surfaces recently-modified
+// JSONL files in a project directory that aren't in the sessions registry.
+function findRecentJsonlSessions(projectDir: string, base: ActiveSession): ActiveSession[] {
+  const ONE_HOUR = 60 * 60 * 1000;
+  try {
+    return readdirSync(projectDir)
+      .filter(f => f.endsWith('.jsonl'))
+      .flatMap(f => {
+        const sessionId = f.slice(0, -6);
+        try {
+          const mtime = statSync(join(projectDir, f)).mtimeMs;
+          if (Date.now() - mtime > ONE_HOUR) return [];
+          return [{ ...base, sessionId, startedAt: mtime }];
+        } catch {
+          return [];
+        }
+      });
+  } catch {
+    return [];
+  }
+}
+
 export function loadActiveSessions(): ActiveSession[] {
   const sessionsDir = join(CLAUDE_DIR, 'sessions');
   if (!existsSync(sessionsDir)) return [];
   try {
-    return readdirSync(sessionsDir)
+    const registered = readdirSync(sessionsDir)
       .filter(f => f.endsWith('.json'))
       .flatMap(f => {
         try {
@@ -33,6 +57,26 @@ export function loadActiveSessions(): ActiveSession[] {
           return [];
         }
       });
+
+    // Also surface recently-modified JSONL sessions not in the registry
+    const seen = new Set(registered.map(s => s.sessionId));
+    const extra: ActiveSession[] = [];
+    const scannedDirs = new Set<string>();
+
+    for (const session of registered) {
+      const projectDir = join(CLAUDE_DIR, 'projects', encodePath(session.cwd));
+      if (scannedDirs.has(projectDir) || !existsSync(projectDir)) continue;
+      scannedDirs.add(projectDir);
+
+      for (const s of findRecentJsonlSessions(projectDir, session)) {
+        if (!seen.has(s.sessionId)) {
+          seen.add(s.sessionId);
+          extra.push(s);
+        }
+      }
+    }
+
+    return [...registered, ...extra];
   } catch {
     return [];
   }
