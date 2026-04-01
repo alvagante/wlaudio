@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claude Monitor</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="logo">⬡ CLAUDE MONITOR</div>
+    <div class="conn-indicator">
+      <span id="conn-dot" class="dot disconnected"></span>
+      <span id="conn-label">CONNECTING</span>
+    </div>
+  </header>
+
+  <aside id="sidebar">
+    <div class="panel-header">
+      SESSIONS <span id="session-count" class="badge">0</span>
+    </div>
+    <ul id="session-list"></ul>
+
+    <div class="panel-header" style="margin-top:auto">TODAY</div>
+    <div id="global-stats" class="global-stats">
+      <div class="stat-row"><span class="dim">Sessions</span><span id="gs-sessions">—</span></div>
+      <div class="stat-row"><span class="dim">Messages</span><span id="gs-messages">—</span></div>
+      <div class="stat-row"><span class="dim">Input tok</span><span id="gs-input">—</span></div>
+      <div class="stat-row"><span class="dim">Output tok</span><span id="gs-output">—</span></div>
+      <div class="stat-row"><span class="dim">Cache read</span><span id="gs-cache">—</span></div>
+    </div>
+    <div id="sparkline-wrap"><canvas id="sparkline" height="48"></canvas></div>
+  </aside>
+
+  <main id="main">
+    <div id="empty-state">
+      <div class="empty-icon">⬡</div>
+      <div>No active sessions</div>
+      <div class="dim" style="font-size:0.8rem;margin-top:0.5rem">Start Claude Code to see live data</div>
+    </div>
+
+    <div id="session-detail" class="hidden">
+      <div class="detail-header">
+        <div>
+          <div id="detail-project" class="project-name"></div>
+          <div id="detail-meta" class="detail-meta"></div>
+        </div>
+        <div id="detail-cost" class="cost-badge"></div>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-label">INPUT</div>
+          <div id="m-input" class="metric-value blue">0</div>
+          <div class="metric-sub">tokens</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">OUTPUT</div>
+          <div id="m-output" class="metric-value green">0</div>
+          <div class="metric-sub">tokens</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">CACHE READ</div>
+          <div id="m-cache-r" class="metric-value purple">0</div>
+          <div class="metric-sub">tokens (90% off)</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">CACHE WRITE</div>
+          <div id="m-cache-w" class="metric-value yellow">0</div>
+          <div class="metric-sub">tokens</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">TOOLS CALLED</div>
+          <div id="m-tools" class="metric-value orange">0</div>
+          <div class="metric-sub">total</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">DURATION</div>
+          <div id="m-duration" class="metric-value teal">—</div>
+          <div class="metric-sub">active</div>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-title">TOKEN DISTRIBUTION</div>
+          <div class="chart-wrap"><canvas id="token-chart"></canvas></div>
+        </div>
+        <div class="chart-card flex-1">
+          <div class="chart-title">TOP TOOLS</div>
+          <div id="tool-bars"></div>
+        </div>
+      </div>
+
+      <div class="timeline-header">
+        <span>TOOL CALL TIMELINE</span>
+        <span id="timeline-count" class="badge">0</span>
+      </div>
+      <div id="timeline" class="timeline"></div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
