@@ -30,6 +30,12 @@
       <div class="stat-row"><span class="dim">Cache read</span><span id="gs-cache">—</span></div>
     </div>
     <div id="sparkline-wrap"><canvas id="sparkline" height="48"></canvas></div>
+
+    <div class="panel-header">PLANS <span id="plans-count" class="badge">0</span></div>
+    <div id="sidebar-plans" class="sidebar-plans"></div>
+
+    <div class="panel-header">CONFIG</div>
+    <div id="config-panel" class="config-panel"></div>
   </aside>
 
   <main id="main">
@@ -92,13 +98,43 @@
         </div>
       </div>
 
-      <div class="timeline-header">
-        <span>TOOL CALL TIMELINE</span>
-        <span id="timeline-count" class="badge">0</span>
+      <!-- Tab bar -->
+      <div class="tab-bar">
+        <button class="tab active" data-tab="tools">
+          TOOLS <span id="timeline-count" class="badge">0</span>
+        </button>
+        <button class="tab" data-tab="prompts">
+          PROMPTS <span id="prompts-count" class="badge">0</span>
+        </button>
+        <button class="tab" data-tab="tasks">
+          TASKS <span id="tasks-count" class="badge">0</span>
+        </button>
       </div>
-      <div id="timeline" class="timeline"></div>
+
+      <!-- Tab panels -->
+      <div id="tab-tools" class="tab-content">
+        <div id="timeline" class="timeline"></div>
+      </div>
+      <div id="tab-prompts" class="tab-content hidden">
+        <div id="prompts-list" class="prompts-list"></div>
+      </div>
+      <div id="tab-tasks" class="tab-content hidden">
+        <div id="tasks-list" class="tasks-list"></div>
+      </div>
     </div>
   </main>
+
+  <!-- Plans modal -->
+  <div id="plans-modal" class="modal hidden">
+    <div id="plan-modal-backdrop" class="modal-backdrop"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <span id="plan-modal-title" class="modal-title"></span>
+        <button id="plan-modal-close" class="modal-close">×</button>
+      </div>
+      <pre id="plan-modal-body" class="plan-body"></pre>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script type="module" src="app.js"></script>
