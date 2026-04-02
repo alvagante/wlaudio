@@ -208,7 +208,7 @@ function updateTokenChart(stats) {
     data,
     options: {
       responsive: true,
-      maintainAspectRatio: true,
+      maintainAspectRatio: false,
       cutout: '60%',
       plugins: {
         legend: { display: false },

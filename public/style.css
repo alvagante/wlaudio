@@ -239,7 +239,7 @@ header {
 .chart-card:first-child { width: 180px; flex-shrink: 0; }
 .flex-1 { flex: 1; }
 .chart-title  { font-size: 0.6rem; letter-spacing: 0.1em; color: var(--dim); margin-bottom: 0.5rem; }
-.chart-wrap   { flex: 1; display: flex; align-items: center; justify-content: center; }
+.chart-wrap   { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 0; }
 
 /* ── Tool bars ─────────────────────────────────────────────────────────── */
 #tool-bars { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.3rem; }
