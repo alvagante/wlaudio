@@ -5,15 +5,22 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { emitter, getAllSessionStates, startWatcher } from './watcher.js';
 import { loadGlobalStats } from './parser.js';
+import { loadHistory, loadAllTodos, loadPlans, loadSettings } from './data.js';
 import type {
   WsMessage,
   InitialStateData,
   SessionAddedData,
   TurnsUpdatedData,
+  HistoryUpdatedData,
+  TodosUpdatedData,
+  PlansUpdatedData,
   ActiveSession,
   Turn,
   SessionStats,
   GlobalStats,
+  HistoryEntry,
+  TodoItem,
+  Plan,
 } from './types/index.js';
 
 const PORT = Number(process.env['PORT'] ?? 4242);
@@ -50,7 +57,6 @@ wss.on('connection', (ws) => {
 emitter.on('session:added', (session: ActiveSession, stats: SessionStats, turns: Turn[]) => {
   const data: SessionAddedData = { session, stats };
   broadcast({ type: 'session_added', data });
-  // also push existing turns for this session
   if (turns.length > 0) {
     const turnsData: TurnsUpdatedData = { sessionId: session.sessionId, newTurns: turns, stats };
     broadcast({ type: 'turns_updated', data: turnsData });
@@ -70,6 +76,21 @@ emitter.on('stats:updated', (stats: GlobalStats | null) => {
   broadcast({ type: 'stats_updated', data: stats });
 });
 
+emitter.on('history:updated', (entries: HistoryEntry[]) => {
+  const data: HistoryUpdatedData = { entries };
+  broadcast({ type: 'history_updated', data });
+});
+
+emitter.on('todos:updated', (todos: Record<string, TodoItem[]>) => {
+  const data: TodosUpdatedData = { todos };
+  broadcast({ type: 'todos_updated', data });
+});
+
+emitter.on('plans:updated', (plans: Plan[]) => {
+  const data: PlansUpdatedData = { plans };
+  broadcast({ type: 'plans_updated', data });
+});
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function buildInitialState(): InitialStateData {
@@ -80,11 +101,19 @@ function buildInitialState(): InitialStateData {
 
   for (const s of states) {
     sessionStats[s.session.sessionId] = s.stats;
-    // Send at most last 200 turns to keep the initial payload manageable
     turns[s.session.sessionId] = s.turns.slice(-200);
   }
 
-  return { activeSessions, sessionStats, turns, globalStats: loadGlobalStats() };
+  return {
+    activeSessions,
+    sessionStats,
+    turns,
+    globalStats:  loadGlobalStats(),
+    history:      loadHistory(),
+    sessionTodos: loadAllTodos(),
+    plans:        loadPlans(),
+    settings:     loadSettings(),
+  };
 }
 
 function broadcast(msg: WsMessage): void {

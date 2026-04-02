@@ -317,6 +317,216 @@ header {
 .tag-WebFetch { background: #f5c2e722; color: var(--pink);   border: 1px solid #f5c2e744; }
 .tag-WebSearch{ background: #f5c2e722; color: var(--pink);   border: 1px solid #f5c2e744; }
 
+/* ── Tab bar ───────────────────────────────────────────────────────────── */
+.tab-bar {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+  flex-shrink: 0;
+}
+
+.tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--dim);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  padding: 0.4rem 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: color 0.15s, border-color 0.15s;
+  margin-bottom: -1px;
+}
+.tab:hover  { color: var(--subtext); }
+.tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+/* ── Tab content panels ────────────────────────────────────────────────── */
+.tab-content {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Prompts panel ─────────────────────────────────────────────────────── */
+.prompts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-right: 0.25rem;
+}
+
+.prompt-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+  padding: 0.3rem 0.4rem;
+  border-radius: 4px;
+  transition: background 0.1s;
+  animation: slideIn 0.2s ease;
+}
+.prompt-row:hover { background: var(--surface); }
+
+.prompt-time {
+  font-size: 0.65rem;
+  color: var(--dim);
+  white-space: nowrap;
+  flex-shrink: 0;
+  width: 100px;
+}
+
+.prompt-body {
+  flex: 1;
+  font-size: 0.78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prompt-cmd  { color: var(--yellow); }
+.prompt-text { color: var(--text); }
+
+/* ── Tasks panel ───────────────────────────────────────────────────────── */
+.tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-right: 0.25rem;
+}
+
+.task-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  transition: background 0.1s;
+}
+.task-row:hover { background: var(--surface); }
+
+.task-icon    { flex-shrink: 0; font-size: 0.8rem; width: 1em; text-align: center; }
+.task-content { flex: 1; line-height: 1.4; }
+
+.task-done    { color: var(--subtext); }
+.task-done .task-icon    { color: var(--green); }
+.task-active  { color: var(--text); }
+.task-active .task-icon  { color: var(--yellow); }
+.task-pending { color: var(--subtext); }
+.task-pending .task-icon { color: var(--dim); }
+
+/* ── Sidebar: plans ────────────────────────────────────────────────────── */
+.sidebar-plans {
+  overflow-y: auto;
+  max-height: 80px;
+  padding: 0.25rem 0;
+}
+
+.plan-item {
+  padding: 0.3rem 1rem;
+  font-size: 0.72rem;
+  color: var(--subtext);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: capitalize;
+  transition: color 0.15s, background 0.15s;
+}
+.plan-item:hover { color: var(--blue); background: var(--overlay); }
+
+/* ── Sidebar: config ───────────────────────────────────────────────────── */
+.config-panel    { padding: 0.25rem 1rem 0.5rem; }
+.config-section  { margin-bottom: 0.4rem; }
+.config-label    { font-size: 0.65rem; letter-spacing: 0.08em; color: var(--dim); margin-bottom: 0.2rem; }
+
+.sidebar-empty {
+  padding: 0.35rem 1rem;
+  font-size: 0.72rem;
+  color: var(--dim);
+}
+
+/* ── Plans modal ───────────────────────────────────────────────────────── */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+}
+
+.modal-content {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: min(720px, 90vw);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  z-index: 1;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.modal-title {
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  color: var(--blue);
+  text-transform: capitalize;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--dim);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+.modal-close:hover { color: var(--text); background: var(--overlay); }
+
+.plan-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ── Panel empty state ─────────────────────────────────────────────────── */
+.panel-empty {
+  padding: 1rem;
+  font-size: 0.75rem;
+  color: var(--dim);
+  text-align: center;
+}
+
 /* ── Scrollbar styling ─────────────────────────────────────────────────── */
 ::-webkit-scrollbar       { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }

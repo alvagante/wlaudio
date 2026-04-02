@@ -1,53 +1,60 @@
+import { renderSidebar, renderGlobalStats, renderPlans, renderSettings, initPlanModal, openPlanModal } from './sidebar.js';
+import { initTabs, updateDetailHeader, updateMetrics, resetTimeline, appendTurnsToTimeline, renderPrompts, renderTasks } from './render.js';
+
 // ── State ──────────────────────────────────────────────────────────────────
 const state = {
-  sessions: new Map(),      // sessionId → ActiveSession
-  stats:    new Map(),      // sessionId → SessionStats
-  turns:    new Map(),      // sessionId → Turn[]
+  sessions:    new Map(),   // sessionId → ActiveSession
+  stats:       new Map(),   // sessionId → SessionStats
+  turns:       new Map(),   // sessionId → Turn[]
   globalStats: null,
+  history:     [],          // HistoryEntry[]
+  todos:       {},          // sessionId → TodoItem[]
+  plans:       [],          // Plan[]
+  settings:    null,        // ClaudeSettings | null
   selectedId:  null,
 };
-
-let tokenChart    = null;
-let sparklineChart = null;
 
 // ── WebSocket ──────────────────────────────────────────────────────────────
 function connect() {
   const ws = new WebSocket(`ws://${location.host}/ws`);
-
-  ws.onopen = () => setConn(true);
+  ws.onopen  = () => setConn(true);
   ws.onclose = () => { setConn(false); setTimeout(connect, 3000); };
   ws.onerror = () => ws.close();
-
   ws.onmessage = (e) => {
-    try { dispatch(JSON.parse(e.data)); }
-    catch { /* ignore parse errors */ }
+    try { dispatch(JSON.parse(e.data)); } catch { /* ignore parse errors */ }
   };
 }
 
 function setConn(up) {
-  document.getElementById('conn-dot').className   = `dot ${up ? 'connected' : 'disconnected'}`;
+  document.getElementById('conn-dot').className    = `dot ${up ? 'connected' : 'disconnected'}`;
   document.getElementById('conn-label').textContent = up ? 'LIVE' : 'RECONNECTING';
 }
 
-// ── Message dispatcher ─────────────────────────────────────────────────────
+// ── Dispatcher ─────────────────────────────────────────────────────────────
 function dispatch({ type, data }) {
   switch (type) {
-    case 'initial_state':  onInitialState(data);  break;
-    case 'session_added':  onSessionAdded(data);  break;
-    case 'session_removed':onSessionRemoved(data);break;
-    case 'turns_updated':  onTurnsUpdated(data);  break;
-    case 'stats_updated':  onStatsUpdated(data);  break;
+    case 'initial_state':   onInitialState(data);   break;
+    case 'session_added':   onSessionAdded(data);   break;
+    case 'session_removed': onSessionRemoved(data); break;
+    case 'turns_updated':   onTurnsUpdated(data);   break;
+    case 'stats_updated':   onStatsUpdated(data);   break;
+    case 'history_updated': onHistoryUpdated(data); break;
+    case 'todos_updated':   onTodosUpdated(data);   break;
+    case 'plans_updated':   onPlansUpdated(data);   break;
   }
 }
 
-function onInitialState({ activeSessions, sessionStats, turns, globalStats }) {
+// ── Event handlers ─────────────────────────────────────────────────────────
+function onInitialState({ activeSessions, sessionStats, turns, globalStats, history, sessionTodos, plans, settings }) {
   state.sessions.clear(); state.stats.clear(); state.turns.clear();
-
-  for (const s of activeSessions)           state.sessions.set(s.sessionId, s);
-  for (const [id, st] of Object.entries(sessionStats)) state.stats.set(id, st);
-  for (const [id, ts] of Object.entries(turns))        state.turns.set(id, ts);
+  for (const s of activeSessions)                        state.sessions.set(s.sessionId, s);
+  for (const [id, st] of Object.entries(sessionStats))   state.stats.set(id, st);
+  for (const [id, ts] of Object.entries(turns))          state.turns.set(id, ts);
   state.globalStats = globalStats;
-
+  state.history     = history ?? [];
+  state.todos       = sessionTodos ?? {};
+  state.plans       = plans ?? [];
+  state.settings    = settings ?? null;
   if (!state.selectedId && state.sessions.size > 0) {
     state.selectedId = [...state.sessions.keys()][0];
   }
@@ -59,8 +66,8 @@ function onSessionAdded({ session, stats }) {
   state.stats.set(session.sessionId, stats);
   state.turns.set(session.sessionId, []);
   if (!state.selectedId) state.selectedId = session.sessionId;
-  renderSidebar();
-  if (state.selectedId === session.sessionId) renderDetail();
+  renderSidebarView();
+  if (state.selectedId === session.sessionId) renderDetailView();
 }
 
 function onSessionRemoved(sessionId) {
@@ -69,9 +76,9 @@ function onSessionRemoved(sessionId) {
   state.turns.delete(sessionId);
   if (state.selectedId === sessionId) {
     state.selectedId = state.sessions.size > 0 ? [...state.sessions.keys()][0] : null;
-    renderDetail();
+    renderDetailView();
   }
-  renderSidebar();
+  renderSidebarView();
 }
 
 function onTurnsUpdated({ sessionId, newTurns, stats }) {
@@ -79,65 +86,47 @@ function onTurnsUpdated({ sessionId, newTurns, stats }) {
   existing.push(...newTurns);
   state.turns.set(sessionId, existing);
   state.stats.set(sessionId, stats);
-
-  renderSidebar();
+  renderSidebarView();
   if (state.selectedId === sessionId) {
-    updateMetrics();
+    updateMetrics(stats);
     appendTurnsToTimeline(newTurns);
   }
 }
 
 function onStatsUpdated(stats) {
   state.globalStats = stats;
-  renderGlobalStats();
+  renderGlobalStats(stats);
 }
 
-// ── Full render ────────────────────────────────────────────────────────────
+function onHistoryUpdated({ entries }) {
+  state.history = entries;
+  if (state.selectedId) renderPrompts(state.selectedId, state.history);
+}
+
+function onTodosUpdated({ todos }) {
+  state.todos = todos;
+  if (state.selectedId) renderTasks(state.selectedId, state.todos);
+}
+
+function onPlansUpdated({ plans }) {
+  state.plans = plans;
+  renderPlans(state.plans, openPlanModal);
+}
+
+// ── Render orchestration ───────────────────────────────────────────────────
 function renderAll() {
-  renderSidebar();
-  renderDetail();
-  renderGlobalStats();
+  renderSidebarView();
+  renderDetailView();
+  renderGlobalStats(state.globalStats);
+  renderPlans(state.plans, openPlanModal);
+  renderSettings(state.settings);
 }
 
-// ── Sidebar ────────────────────────────────────────────────────────────────
-function renderSidebar() {
-  const list  = document.getElementById('session-list');
-  const count = document.getElementById('session-count');
-  count.textContent = state.sessions.size;
-
-  list.innerHTML = '';
-  for (const [id, session] of state.sessions) {
-    const stats = state.stats.get(id);
-    const li    = document.createElement('li');
-    li.className = `session-item${id === state.selectedId ? ' active' : ''}`;
-    li.dataset.id = id;
-
-    const models = stats ? Object.keys(stats.models) : [];
-    const tok    = stats ? fmtTokens(totalTokenCount(stats.totalTokens)) : '—';
-    const cost   = stats ? `$${stats.estimatedCostUSD.toFixed(4)}` : '—';
-
-    li.innerHTML = `
-      <div class="si-header">
-        <span class="si-dot"></span>
-        <span class="si-name">${projectName(session.cwd)}</span>
-        <span class="si-age">${timeAgo(session.startedAt)}</span>
-      </div>
-      <div class="si-tokens">${tok} tok &nbsp;<span class="si-cost">${cost}</span></div>
-      <div class="si-models">${models.map(m => `<span class="model-badge">${shortModel(m)}</span>`).join('')}</div>
-    `;
-    li.addEventListener('click', () => selectSession(id));
-    list.appendChild(li);
-  }
+function renderSidebarView() {
+  renderSidebar(state.sessions, state.stats, state.selectedId, selectSession);
 }
 
-function selectSession(id) {
-  state.selectedId = id;
-  renderSidebar();
-  renderDetail();
-}
-
-// ── Detail view ────────────────────────────────────────────────────────────
-function renderDetail() {
+function renderDetailView() {
   const empty  = document.getElementById('empty-state');
   const detail = document.getElementById('session-detail');
 
@@ -154,16 +143,12 @@ function renderDetail() {
   const stats   = state.stats.get(state.selectedId);
   const turns   = state.turns.get(state.selectedId) ?? [];
 
-  document.getElementById('detail-project').textContent = projectName(session.cwd);
-  document.getElementById('detail-meta').textContent =
-    `${session.cwd}  •  started ${timeAgo(session.startedAt)}  •  ${session.kind}`;
-
-  updateMetrics();
-
-  // Full timeline rebuild on session switch
-  const timeline = document.getElementById('timeline');
-  timeline.innerHTML = '';
+  updateDetailHeader(session);
+  updateMetrics(stats);
+  resetTimeline();
   appendTurnsToTimeline(turns);
+  renderPrompts(state.selectedId, state.history);
+  renderTasks(state.selectedId, state.todos);
 }
 
 function updateMetrics() {
@@ -424,9 +409,8 @@ function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// ── Refresh timers ─────────────────────────────────────────────────────────
-// Refresh "X ago" timestamps every 30 seconds
-setInterval(() => renderSidebar(), 30_000);
-
 // ── Boot ───────────────────────────────────────────────────────────────────
+initTabs();
+initPlanModal();
 connect();
+setInterval(renderSidebarView, 30_000);
