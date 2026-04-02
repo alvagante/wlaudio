@@ -1,10 +1,11 @@
 import express from 'express';
 import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
-import { join, dirname } from 'path';
+import { join, dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
+import { readFileSync, existsSync } from 'fs';
 import { emitter, getAllSessionStates, startWatcher } from './watcher.js';
-import { loadGlobalStats } from './parser.js';
+import { loadGlobalStats, CLAUDE_DIR } from './parser.js';
 import { loadHistory, loadAllTodos, loadPlans, loadSettings } from './data.js';
 import type {
   WsMessage,
@@ -36,6 +37,28 @@ app.use(express.static(publicDir));
 
 app.get('/api/state', (_req, res) => {
   res.json(buildInitialState());
+});
+
+app.get('/api/v1/session-files', (req, res) => {
+  const cwd = String(req.query['cwd'] ?? '').trim();
+  if (!cwd) { res.status(400).json({ error: 'cwd required' }); return; }
+  const dir = resolve(cwd);
+  const candidates = [
+    { label: 'Global CLAUDE.md',              path: join(CLAUDE_DIR, 'CLAUDE.md') },
+    { label: 'Global settings.json',          path: join(CLAUDE_DIR, 'settings.json') },
+    { label: 'Global settings.local.json',    path: join(CLAUDE_DIR, 'settings.local.json') },
+    { label: 'Project CLAUDE.md',             path: join(dir, 'CLAUDE.md') },
+    { label: 'Project CLAUDE.local.md',       path: join(dir, 'CLAUDE.local.md') },
+    { label: 'Project .claude/CLAUDE.md',     path: join(dir, '.claude', 'CLAUDE.md') },
+    { label: 'Project .claude/settings.json', path: join(dir, '.claude', 'settings.json') },
+    { label: 'Project .claude/settings.local.json', path: join(dir, '.claude', 'settings.local.json') },
+  ];
+  const files = candidates.map(({ label, path }) => ({
+    label,
+    path,
+    content: existsSync(path) ? readFileSync(path, 'utf-8') : null,
+  }));
+  res.json(files);
 });
 
 // ── WebSocket server ───────────────────────────────────────────────────────

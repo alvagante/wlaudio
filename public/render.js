@@ -4,8 +4,9 @@ import {
   fmtToolInput, fmtTimestamp, toolColor, escHtml,
 } from './utils.js';
 
-let tokenChart = null;
-let activeTab  = 'tools';
+let tokenChart  = null;
+let activeTab   = 'tools';
+let _popupTurns = [];   // current session turns — used by tool popup
 
 // ── Tabs ───────────────────────────────────────────────────────────────────
 
@@ -40,7 +41,7 @@ export function updateDetailHeader(session) {
 
 // ── Metrics ────────────────────────────────────────────────────────────────
 
-export function updateMetrics(stats) {
+export function updateMetrics(stats, turns = []) {
   if (!stats) return;
   const t = stats.totalTokens;
   document.getElementById('m-input').textContent    = fmtTokens(t.inputTokens);
@@ -51,7 +52,7 @@ export function updateMetrics(stats) {
   document.getElementById('m-duration').textContent = fmtDuration(stats.durationMs);
   document.getElementById('detail-cost').textContent = `$${stats.estimatedCostUSD.toFixed(4)}`;
   updateTokenChart(stats);
-  updateToolBars(stats);
+  updateToolBars(stats, turns);
 }
 
 // ── Token doughnut ─────────────────────────────────────────────────────────
@@ -72,7 +73,7 @@ function updateTokenChart(stats) {
   tokenChart = new Chart(ctx, {
     type: 'doughnut', data,
     options: {
-      responsive: true, maintainAspectRatio: true, cutout: '60%',
+      responsive: true, maintainAspectRatio: false, cutout: '60%',
       plugins: {
         legend: { display: false },
         tooltip: { callbacks: { label: (c) => ` ${c.label}: ${fmtTokens(c.parsed)}` } },
@@ -83,7 +84,8 @@ function updateTokenChart(stats) {
 
 // ── Tool bars ──────────────────────────────────────────────────────────────
 
-function updateToolBars(stats) {
+function updateToolBars(stats, turns) {
+  _popupTurns = turns ?? [];
   const container = document.getElementById('tool-bars');
   const entries   = Object.entries(stats.toolFrequency).sort((a, b) => b[1] - a[1]).slice(0, 8);
   if (!entries.length) {
@@ -92,7 +94,7 @@ function updateToolBars(stats) {
   }
   const max = entries[0]?.[1] ?? 1;
   container.innerHTML = entries.map(([name, count]) => `
-    <div class="tool-bar-row">
+    <div class="tool-bar-row" data-tool="${escHtml(name)}">
       <span class="tool-bar-name">${name}</span>
       <div class="tool-bar-bg">
         <div class="tool-bar-fill" style="width:${(count/max*100).toFixed(1)}%;background:${toolColor(name)}"></div>
@@ -100,6 +102,186 @@ function updateToolBars(stats) {
       <span class="tool-bar-val">${count}</span>
     </div>
   `).join('');
+  container.querySelectorAll('.tool-bar-row').forEach(row => {
+    row.addEventListener('click', () => showToolPopup(row.dataset.tool));
+  });
+}
+
+// ── Tool popup ─────────────────────────────────────────────────────────────
+
+function fmtInputDetails(name, input) {
+  const pairs = [];
+  const add = (k, v, max = 0) => {
+    if (v == null || v === '') return;
+    let s = typeof v === 'string' ? v : JSON.stringify(v);
+    if (max && s.length > max) s = s.slice(0, max) + '…';
+    pairs.push([k, s]);
+  };
+  switch (name) {
+    case 'Read':
+      add('file', input.file_path);
+      if (input.offset != null) add('offset', String(input.offset));
+      if (input.limit  != null) add('limit',  String(input.limit));
+      break;
+    case 'Write':
+      add('file', input.file_path);
+      if (input.content != null) add('size', String(input.content).length + ' chars');
+      break;
+    case 'Edit':
+      add('file', input.file_path);
+      add('old', String(input.old_string ?? ''), 100);
+      add('new', String(input.new_string ?? ''), 100);
+      break;
+    case 'Bash':
+      add('cmd',  String(input.command ?? ''), 220);
+      if (input.description) add('desc', String(input.description), 100);
+      break;
+    case 'Grep':
+      add('pattern', String(input.pattern ?? ''));
+      if (input.path)        add('path',  String(input.path));
+      if (input.glob)        add('glob',  String(input.glob));
+      if (input.output_mode) add('mode',  String(input.output_mode));
+      if (input['-i'])       add('flags', 'case-insensitive');
+      break;
+    case 'Glob':
+      add('pattern', String(input.pattern ?? ''));
+      if (input.path) add('path', String(input.path));
+      break;
+    case 'Agent':
+      if (input.subagent_type) add('type',   String(input.subagent_type));
+      if (input.description)   add('desc',   String(input.description),  100);
+      if (input.prompt)        add('prompt', String(input.prompt),        220);
+      break;
+    case 'WebFetch':
+      add('url', String(input.url ?? ''));
+      break;
+    case 'WebSearch':
+      add('query', String(input.query ?? ''));
+      break;
+    default:
+      for (const [k, v] of Object.entries(input ?? {})) add(k, v, 120);
+  }
+  return pairs;
+}
+
+function renderCallHtml(tc) {
+  const time  = tc.timestamp
+    ? new Date(tc.timestamp).toLocaleTimeString('en', { hour12: false })
+    : '—';
+  const dur   = tc.durationMs != null ? fmtMs(tc.durationMs) : '';
+  const isErr = tc.result?.isError;
+  const pairs = fmtInputDetails(tc.name, tc.input ?? {});
+  const result = tc.result?.content ? String(tc.result.content) : '';
+  return `
+    <div class="popup-call">
+      <div class="popup-call-header">
+        <span class="popup-call-time">${time}</span>
+        ${dur ? `<span class="popup-call-dur">${dur}</span>` : ''}
+        <span class="${isErr ? 'popup-call-err' : 'popup-call-ok'}">${isErr ? '✗ error' : '✓'}</span>
+      </div>
+      ${pairs.map(([k, v]) => `
+        <div class="popup-kv">
+          <span class="popup-k">${escHtml(k)}</span>
+          <span class="popup-v">${escHtml(v)}</span>
+        </div>`).join('')}
+      ${result ? `<div class="popup-result${isErr ? ' err' : ''}">${escHtml(result)}</div>` : ''}
+    </div>
+  `;
+}
+
+function openPopup(toolName, calls) {
+  const overlay = document.getElementById('tool-popup-overlay');
+  const popup   = document.getElementById('tool-popup');
+  const tagCls  = `tool-tag tag-${toolName} tag-${toolName in TAG_COLORS ? toolName : 'default'}`;
+  popup.innerHTML = `
+    <div class="popup-header">
+      <span class="${tagCls}">${escHtml(toolName)}</span>
+      <span class="popup-count">${calls.length} call${calls.length !== 1 ? 's' : ''}</span>
+      <button class="popup-close" id="popup-close-btn">✕</button>
+    </div>
+    <div class="popup-list">
+      ${calls.length === 0
+        ? '<div style="padding:1rem;font-size:0.75rem;color:var(--dim)">No call detail available</div>'
+        : calls.map(renderCallHtml).join('')}
+    </div>
+  `;
+  overlay.classList.remove('hidden');
+  document.getElementById('popup-close-btn').addEventListener('click', closeToolPopup);
+}
+
+function showToolPopup(toolName) {
+  const calls = _popupTurns.flatMap(t => (t.toolCalls ?? []).filter(tc => tc.name === toolName));
+  openPopup(toolName, calls);
+}
+
+function showSingleCallPopup(tc) {
+  openPopup(tc.name, [tc]);
+}
+
+function closeToolPopup() {
+  document.getElementById('tool-popup-overlay').classList.add('hidden');
+}
+
+export function initToolPopup() {
+  const overlay = document.getElementById('tool-popup-overlay');
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeToolPopup(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeToolPopup(); });
+}
+
+// ── Files popup ────────────────────────────────────────────────────────────
+
+export async function openFilesPopup(cwd) {
+  const overlay  = document.getElementById('files-popup-overlay');
+  const listEl   = document.getElementById('files-list');
+  const contentEl = document.getElementById('files-content');
+
+  listEl.innerHTML   = '<div class="files-empty">Loading…</div>';
+  contentEl.textContent = '';
+  overlay.classList.remove('hidden');
+
+  let files;
+  try {
+    const res = await fetch(`/api/v1/session-files?cwd=${encodeURIComponent(cwd)}`);
+    files = await res.json();
+  } catch {
+    listEl.innerHTML = '<div class="files-empty">Failed to load files</div>';
+    return;
+  }
+
+  function selectFile(file, activeEl) {
+    listEl.querySelectorAll('.ffile-item').forEach(el => el.classList.remove('active'));
+    if (activeEl) activeEl.classList.add('active');
+    contentEl.textContent = file.content ?? '(file not found)';
+  }
+
+  listEl.innerHTML = files.map(f => `
+    <div class="ffile-item${f.content === null ? ' missing' : ''}">
+      <span class="ffile-dot ${f.content !== null ? 'present' : 'absent'}"></span>
+      <span>${escHtml(f.label)}</span>
+    </div>
+  `).join('');
+
+  listEl.querySelectorAll('.ffile-item:not(.missing)').forEach((el) => {
+    const idx  = [...listEl.querySelectorAll('.ffile-item')].indexOf(el);
+    const file = files[idx];
+    el.addEventListener('click', () => selectFile(file, el));
+  });
+
+  const firstEl   = listEl.querySelector('.ffile-item:not(.missing)');
+  const firstFile = files.find(f => f.content !== null);
+  if (firstFile && firstEl) selectFile(firstFile, firstEl);
+  else contentEl.textContent = '(no config files found for this session)';
+}
+
+export function initFilesPopup() {
+  const overlay = document.getElementById('files-popup-overlay');
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeFilesPopup(); });
+  document.getElementById('files-popup-close').addEventListener('click', closeFilesPopup);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFilesPopup(); });
+}
+
+function closeFilesPopup() {
+  document.getElementById('files-popup-overlay').classList.add('hidden');
 }
 
 // ── Tool timeline ──────────────────────────────────────────────────────────
@@ -126,6 +308,7 @@ export function appendTurnsToTimeline(turns) {
 function buildToolRow(tc, isSidechain) {
   const row    = document.createElement('div');
   row.className = `turn-row${isSidechain ? ' sidechain' : ''}`;
+  row.style.cursor = 'pointer';
   const time   = tc.timestamp ? new Date(tc.timestamp).toLocaleTimeString('en', { hour12: false }) : '—';
   const desc   = fmtToolInput(tc.name, tc.input);
   const dur    = tc.durationMs != null ? fmtMs(tc.durationMs) : '';
@@ -138,6 +321,7 @@ function buildToolRow(tc, isSidechain) {
     <span class="turn-desc${errCls}">${escHtml(desc)}</span>
     <span class="turn-dur">${dur}</span>
   `;
+  row.addEventListener('click', () => showSingleCallPopup(tc));
   return row;
 }
 

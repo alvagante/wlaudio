@@ -51,7 +51,10 @@
           <div id="detail-project" class="project-name"></div>
           <div id="detail-meta" class="detail-meta"></div>
         </div>
-        <div id="detail-cost" class="cost-badge"></div>
+        <div class="detail-header-actions">
+          <button id="files-btn" class="files-btn">FILES</button>
+          <div id="detail-cost" class="cost-badge"></div>
+        </div>
       </div>
 
       <div class="metrics-grid">
@@ -133,6 +136,27 @@
         <button id="plan-modal-close" class="modal-close">×</button>
       </div>
       <pre id="plan-modal-body" class="plan-body"></pre>
+    </div>
+  </div>
+
+  <!-- Tool call detail popup -->
+  <div id="tool-popup-overlay" class="hidden">
+    <div id="tool-popup"></div>
+  </div>
+
+  <!-- Session files popup -->
+  <div id="files-popup-overlay" class="hidden">
+    <div id="files-popup">
+      <div class="fpopup-header">
+        <span class="fpopup-title">SESSION FILES</span>
+        <button class="popup-close" id="files-popup-close">✕</button>
+      </div>
+      <div class="fpopup-body">
+        <div class="fpopup-list" id="files-list"></div>
+        <div class="fpopup-content">
+          <pre id="files-content"></pre>
+        </div>
+      </div>
     </div>
   </div>
 

@@ -1,5 +1,5 @@
 import { renderSidebar, renderGlobalStats, renderPlans, renderSettings, initPlanModal, openPlanModal } from './sidebar.js';
-import { initTabs, updateDetailHeader, updateMetrics, resetTimeline, appendTurnsToTimeline, renderPrompts, renderTasks } from './render.js';
+import { initTabs, initToolPopup, initFilesPopup, openFilesPopup, updateDetailHeader, updateMetrics, resetTimeline, appendTurnsToTimeline, renderPrompts, renderTasks } from './render.js';
 
 // ── State ──────────────────────────────────────────────────────────────────
 const state = {
@@ -88,7 +88,7 @@ function onTurnsUpdated({ sessionId, newTurns, stats }) {
   state.stats.set(sessionId, stats);
   renderSidebarView();
   if (state.selectedId === sessionId) {
-    updateMetrics(stats);
+    updateMetrics(stats, existing);
     appendTurnsToTimeline(newTurns);
   }
 }
@@ -150,7 +150,7 @@ function renderDetailView() {
   const turns   = state.turns.get(state.selectedId) ?? [];
 
   updateDetailHeader(session);
-  updateMetrics(stats);
+  updateMetrics(stats, turns);
   resetTimeline();
   appendTurnsToTimeline(turns);
   renderPrompts(state.selectedId, state.history);
@@ -160,5 +160,13 @@ function renderDetailView() {
 // ── Boot ───────────────────────────────────────────────────────────────────
 initTabs();
 initPlanModal();
+initToolPopup();
+initFilesPopup();
+
+document.getElementById('files-btn').addEventListener('click', () => {
+  const session = state.sessions.get(state.selectedId);
+  if (session) openFilesPopup(session.cwd);
+});
+
 connect();
 setInterval(renderSidebarView, 30_000);
