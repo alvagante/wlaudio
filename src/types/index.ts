@@ -56,6 +56,9 @@ export interface SessionStats {
 }
 
 export interface SessionMeta {
+  sessionId: string;
+  projectPath: string;
+  startTime: string;
   firstPrompt: string;
   durationMinutes: number;
   userMessageCount: number;
@@ -66,6 +69,7 @@ export interface SessionMeta {
   linesRemoved: number;
   filesModified: number;
   languages: Record<string, number>;
+  toolCounts: Record<string, number>;
   toolErrors: number;
   userInterruptions: number;
   usesMcp: boolean;

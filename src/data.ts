@@ -109,6 +109,9 @@ export function loadAllSessionMetas(): Record<string, SessionMeta> {
       try {
         const raw = JSON.parse(readFileSync(join(dir, f), 'utf-8')) as Record<string, unknown>;
         result[sessionId] = {
+          sessionId,
+          projectPath:            String(raw['project_path']          ?? ''),
+          startTime:              String(raw['start_time']            ?? ''),
           firstPrompt:            String(raw['first_prompt']          ?? ''),
           durationMinutes:        Number(raw['duration_minutes']      ?? 0),
           userMessageCount:       Number(raw['user_message_count']    ?? 0),
@@ -118,7 +121,8 @@ export function loadAllSessionMetas(): Record<string, SessionMeta> {
           linesAdded:             Number(raw['lines_added']           ?? 0),
           linesRemoved:           Number(raw['lines_removed']         ?? 0),
           filesModified:          Number(raw['files_modified']        ?? 0),
-          languages:              (raw['languages']   as Record<string, number>) ?? {},
+          languages:              (raw['languages']    as Record<string, number>) ?? {},
+          toolCounts:             (raw['tool_counts']  as Record<string, number>) ?? {},
           toolErrors:             Number(raw['tool_errors']           ?? 0),
           userInterruptions:      Number(raw['user_interruptions']    ?? 0),
           usesMcp:                Boolean(raw['uses_mcp']),

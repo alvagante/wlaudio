@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Wlaudio, theClaude Monitor</title>
+  <title>Wlaudio, the Claude Monitor</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header>
-    <div class="logo">⬡ WLAUDIO, the CLAUDE MONITOR v0.2.0</div>
+    <div class="logo">⬡ WLAUDIO, the CLAUDE MONITOR v0.2.1</div>
     <div class="conn-indicator">
       <span id="conn-dot" class="dot disconnected"></span>
       <span id="conn-label">CONNECTING</span>
@@ -53,7 +53,24 @@
         </div>
         <div class="detail-header-actions">
           <button id="files-btn" class="files-btn">CLAUDE FILES</button>
-          <div id="detail-cost" class="cost-badge"></div>
+          <div class="cost-wrap">
+            <div id="detail-cost" class="cost-badge"></div>
+            <div class="cost-tooltip">
+              <div class="ct-title">Estimated API cost</div>
+              <div class="ct-note">What this session would cost via direct API access — without a Claude Code subscription. Subscribers pay a flat monthly fee instead.</div>
+              <table class="ct-table">
+                <thead>
+                  <tr><th>Model</th><th>Input</th><th>Output</th><th>Cache R</th><th>Cache W</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Opus</td><td>$15</td><td>$75</td><td>$1.50</td><td>$18.75</td></tr>
+                  <tr><td>Sonnet</td><td>$3</td><td>$15</td><td>$0.30</td><td>$3.75</td></tr>
+                  <tr><td>Haiku</td><td>$0.80</td><td>$4</td><td>$0.08</td><td>$1.00</td></tr>
+                </tbody>
+              </table>
+              <div class="ct-unit">USD per million tokens</div>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -26,7 +26,7 @@ export function switchTab(tab) {
 
 // ── Detail header ──────────────────────────────────────────────────────────
 
-export function updateDetailHeader(session) {
+export function updateDetailHeader(session, isCompleted = false) {
   const name = session.cwd.split('/').filter(Boolean).pop() ?? session.cwd;
   const age  = (() => {
     const ms = Date.now() - session.startedAt;
@@ -36,18 +36,41 @@ export function updateDetailHeader(session) {
   })();
   document.getElementById('detail-project').textContent = name;
   document.getElementById('detail-meta').textContent =
-    `${session.cwd}  •  started ${age}  •  ${session.kind}`;
+    `${session.cwd}  •  started ${age}  •  ${isCompleted ? 'ended' : session.kind}`;
 }
 
 // ── Metrics ────────────────────────────────────────────────────────────────
 
 export function updateMetrics(stats, turns = []) {
-  if (!stats) return;
-  const t = stats.totalTokens;
-  document.getElementById('m-input').textContent    = fmtTokens(t.inputTokens);
-  document.getElementById('m-output').textContent   = fmtTokens(t.outputTokens);
-  document.getElementById('m-cache-r').textContent  = fmtTokens(t.cacheReadInputTokens);
-  document.getElementById('m-cache-w').textContent  = fmtTokens(t.cacheCreationInputTokens);
+  if (!stats) {
+    // Clear all fields so a previous session's values don't bleed through
+    ['m-input','m-output','m-cache-r','m-cache-w'].forEach(id => {
+      document.getElementById(id).textContent = '—';
+    });
+    document.getElementById('m-tools').textContent    = '—';
+    document.getElementById('m-duration').textContent = '—';
+    document.getElementById('detail-cost').textContent = '—';
+    const toolsSub = document.getElementById('m-tools-sub');
+    if (toolsSub) { toolsSub.textContent = 'total'; toolsSub.className = 'metric-sub'; }
+    updateToolBars(null, []);
+    return;
+  }
+  // Token data is unavailable for historical sessions loaded from metadata
+  if (stats.hasTokenData === false) {
+    ['m-input','m-output','m-cache-r','m-cache-w'].forEach(id => {
+      document.getElementById(id).textContent = '—';
+    });
+    document.getElementById('detail-cost').textContent = '—';
+    if (tokenChart) { tokenChart.destroy(); tokenChart = null; }
+  } else {
+    const t = stats.totalTokens;
+    document.getElementById('m-input').textContent   = fmtTokens(t.inputTokens);
+    document.getElementById('m-output').textContent  = fmtTokens(t.outputTokens);
+    document.getElementById('m-cache-r').textContent = fmtTokens(t.cacheReadInputTokens);
+    document.getElementById('m-cache-w').textContent = fmtTokens(t.cacheCreationInputTokens);
+    document.getElementById('detail-cost').textContent = `$${stats.estimatedCostUSD.toFixed(4)}`;
+    updateTokenChart(stats);
+  }
   document.getElementById('m-tools').textContent    = stats.toolCallCount;
   document.getElementById('m-duration').textContent = fmtDuration(stats.durationMs);
   const toolsSub = document.getElementById('m-tools-sub');
@@ -55,8 +78,6 @@ export function updateMetrics(stats, turns = []) {
     toolsSub.textContent = stats.toolErrorCount > 0 ? `${stats.toolErrorCount} errors` : 'total';
     toolsSub.className   = stats.toolErrorCount > 0 ? 'metric-sub err' : 'metric-sub';
   }
-  document.getElementById('detail-cost').textContent = `$${stats.estimatedCostUSD.toFixed(4)}`;
-  updateTokenChart(stats);
   updateToolBars(stats, turns);
 }
 
@@ -262,7 +283,10 @@ export async function openFilesPopup(cwd) {
   listEl.innerHTML = files.map(f => `
     <div class="ffile-item${f.content === null ? ' missing' : ''}">
       <span class="ffile-dot ${f.content !== null ? 'present' : 'absent'}"></span>
-      <span>${escHtml(f.label)}</span>
+      <span class="ffile-info">
+        <span class="ffile-label">${escHtml(f.label)}</span>
+        <span class="ffile-path">${escHtml(f.path)}</span>
+      </span>
     </div>
   `).join('');
 

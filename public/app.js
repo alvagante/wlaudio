@@ -5,17 +5,18 @@ import { renderFileHistory } from './file-history.js';
 
 // ── State ──────────────────────────────────────────────────────────────────
 const state = {
-  sessions:    new Map(),   // sessionId → ActiveSession
-  stats:       new Map(),   // sessionId → SessionStats
-  turns:       new Map(),   // sessionId → Turn[]
+  sessions:   new Map(),   // sessionId → ActiveSession  (active)
+  completed:  new Map(),   // sessionId → {session, stats, turns, endedAt}
+  stats:      new Map(),   // sessionId → SessionStats
+  turns:      new Map(),   // sessionId → Turn[]
   globalStats: null,
-  history:     [],          // HistoryEntry[]
-  todos:       {},          // sessionId → TodoItem[]
-  plans:       [],          // Plan[]
-  settings:    null,
-  meta:        {},          // sessionId → SessionMeta
-  facets:      {},          // sessionId → SessionFacets
-  selectedId:  null,
+  history:    [],
+  todos:      {},
+  plans:      [],
+  settings:   null,
+  meta:       {},          // sessionId → SessionMeta
+  facets:     {},          // sessionId → SessionFacets
+  selectedId: null,
 };
 
 // ── WebSocket ──────────────────────────────────────────────────────────────
@@ -51,7 +52,7 @@ function dispatch({ type, data }) {
 
 // ── Event handlers ─────────────────────────────────────────────────────────
 function onInitialState({ activeSessions, sessionStats, turns, globalStats, history, sessionTodos, plans, settings, sessionMeta, sessionFacets }) {
-  state.sessions.clear(); state.stats.clear(); state.turns.clear();
+  state.sessions.clear(); state.completed.clear(); state.stats.clear(); state.turns.clear();
   for (const s of activeSessions)                       state.sessions.set(s.sessionId, s);
   for (const [id, st] of Object.entries(sessionStats))  state.stats.set(id, st);
   for (const [id, ts] of Object.entries(turns))         state.turns.set(id, ts);
@@ -62,8 +63,40 @@ function onInitialState({ activeSessions, sessionStats, turns, globalStats, hist
   state.settings    = settings ?? null;
   state.meta        = sessionMeta ?? {};
   state.facets      = sessionFacets ?? {};
-  if (!state.selectedId && state.sessions.size > 0) {
-    state.selectedId = [...state.sessions.keys()][0];
+
+  // Populate completed sessions from session-meta for non-active sessions
+  const activeIds = new Set(activeSessions.map(s => s.sessionId));
+  const metas = Object.values(state.meta)
+    .filter(m => !activeIds.has(m.sessionId) && m.projectPath && m.startTime)
+    .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
+    .slice(0, 15);
+  for (const m of metas) {
+    const endedAt   = new Date(m.startTime).getTime() + m.durationMinutes * 60_000;
+    const toolCount = Object.values(m.toolCounts ?? {}).reduce((a, b) => a + b, 0);
+    state.completed.set(m.sessionId, {
+      session: { sessionId: m.sessionId, cwd: m.projectPath, startedAt: new Date(m.startTime).getTime(), kind: 'interactive', entrypoint: 'cli' },
+      endedAt,
+    });
+    // Build synthetic stats — token/cost data is not in metadata, so flag as unavailable
+    state.stats.set(m.sessionId, {
+      sessionId:        m.sessionId,
+      totalTokens:      { inputTokens: 0, outputTokens: 0, cacheReadInputTokens: 0, cacheCreationInputTokens: 0 },
+      estimatedCostUSD: 0,
+      toolCallCount:    toolCount,
+      toolErrorCount:   m.toolErrors ?? 0,
+      turnCount:        (m.userMessageCount ?? 0) + (m.assistantMessageCount ?? 0),
+      durationMs:       (m.durationMinutes ?? 0) * 60_000,
+      models:           {},
+      toolFrequency:    m.toolCounts ?? {},
+      isSubagentActive: m.usesTaskAgent ?? false,
+      hasTokenData:     false,
+    });
+  }
+
+  if (!state.selectedId) {
+    state.selectedId = state.sessions.size > 0
+      ? [...state.sessions.keys()][0]
+      : state.completed.size > 0 ? [...state.completed.keys()][0] : null;
   }
   renderAll();
 }
@@ -78,14 +111,16 @@ function onSessionAdded({ session, stats }) {
 }
 
 function onSessionRemoved(sessionId) {
-  state.sessions.delete(sessionId);
-  state.stats.delete(sessionId);
-  state.turns.delete(sessionId);
-  if (state.selectedId === sessionId) {
-    state.selectedId = state.sessions.size > 0 ? [...state.sessions.keys()][0] : null;
-    renderDetailView();
+  const session = state.sessions.get(sessionId);
+  const stats   = state.stats.get(sessionId);
+  const turns   = state.turns.get(sessionId) ?? [];
+  if (session) {
+    state.completed.set(sessionId, { session, stats, turns, endedAt: Date.now() });
   }
+  state.sessions.delete(sessionId);
+  // keep stats/turns in state maps so renderDetailView still works for completed session
   renderSidebarView();
+  if (state.selectedId === sessionId) renderDetailView();
 }
 
 function onTurnsUpdated({ sessionId, newTurns, stats }) {
@@ -146,15 +181,23 @@ function selectSession(id) {
   renderDetailView();
 }
 
+function isSessionKnown(id) {
+  return state.sessions.has(id) || state.completed.has(id);
+}
+
 function renderSidebarView() {
-  renderSidebar(state.sessions, state.stats, state.selectedId, selectSession);
+  renderSidebar(state.sessions, state.stats, state.selectedId, selectSession, state.completed);
 }
 
 function renderDetailView() {
   const empty  = document.getElementById('empty-state');
   const detail = document.getElementById('session-detail');
+  const id     = state.selectedId;
 
-  if (!state.selectedId || !state.sessions.has(state.selectedId)) {
+  const isActive    = id && state.sessions.has(id);
+  const isCompleted = id && state.completed.has(id);
+
+  if (!id || (!isActive && !isCompleted)) {
     empty.classList.remove('hidden');
     detail.classList.add('hidden');
     return;
@@ -163,20 +206,20 @@ function renderDetailView() {
   empty.classList.add('hidden');
   detail.classList.remove('hidden');
 
-  const session = state.sessions.get(state.selectedId);
-  const stats   = state.stats.get(state.selectedId);
-  const turns   = state.turns.get(state.selectedId) ?? [];
-  const meta    = state.meta[state.selectedId]   ?? null;
-  const facets  = state.facets[state.selectedId] ?? null;
+  const session = isActive ? state.sessions.get(id) : state.completed.get(id).session;
+  const stats   = state.stats.get(id) ?? null;
+  const turns   = state.turns.get(id) ?? [];
+  const meta    = state.meta[id]   ?? null;
+  const facets  = state.facets[id] ?? null;
 
-  updateDetailHeader(session);
+  updateDetailHeader(session, isCompleted && !isActive);
   updateMetrics(stats, turns);
   updateSummaryCard(facets);
   updateCodeImpact(meta, stats);
   resetTimeline();
   appendTurnsToTimeline(turns);
-  renderPrompts(state.selectedId, state.history);
-  renderTasks(state.selectedId, state.todos);
+  renderPrompts(id, state.history);
+  renderTasks(id, state.todos);
   renderFileHistory(turns);
 }
 
@@ -187,7 +230,8 @@ initToolPopup();
 initFilesPopup();
 
 document.getElementById('files-btn').addEventListener('click', () => {
-  const session = state.sessions.get(state.selectedId);
+  const session = state.sessions.get(state.selectedId)
+    ?? state.completed.get(state.selectedId)?.session;
   if (session) openFilesPopup(session.cwd);
 });
 

@@ -5,34 +5,56 @@ let sparklineChart = null;
 
 // ── Session list ───────────────────────────────────────────────────────────
 
-export function renderSidebar(sessions, stats, selectedId, onSelect) {
+export function renderSidebar(sessions, stats, selectedId, onSelect, completed = new Map()) {
   const list  = document.getElementById('session-list');
   const count = document.getElementById('session-count');
   count.textContent = sessions.size;
 
   list.innerHTML = '';
+
+  // Active sessions first
   for (const [id, session] of sessions) {
-    const st  = stats.get(id);
-    const li  = document.createElement('li');
-    li.className = `session-item${id === selectedId ? ' active' : ''}`;
-    li.dataset.id = id;
-
-    const models = st ? Object.keys(st.models) : [];
-    const tok    = st ? fmtTokens(totalTokenCount(st.totalTokens)) : '—';
-    const cost   = st ? `$${st.estimatedCostUSD.toFixed(4)}` : '—';
-
-    li.innerHTML = `
-      <div class="si-header">
-        <span class="si-dot"></span>
-        <span class="si-name">${projectName(session.cwd)}</span>
-        <span class="si-age">${timeAgo(session.startedAt)}</span>
-      </div>
-      <div class="si-tokens">${tok} tok &nbsp;<span class="si-cost">${cost}</span></div>
-      <div class="si-models">${models.map(m => `<span class="model-badge">${shortModel(m)}</span>`).join('')}</div>
-    `;
-    li.addEventListener('click', () => onSelect(id));
-    list.appendChild(li);
+    list.appendChild(buildSessionItem(id, session, stats.get(id), selectedId, onSelect, false));
   }
+
+  // Completed sessions (up to 15, most recent first)
+  const completedEntries = [...completed.entries()]
+    .sort((a, b) => (b[1].endedAt ?? 0) - (a[1].endedAt ?? 0))
+    .slice(0, 15);
+
+  if (completedEntries.length > 0 && sessions.size > 0) {
+    const sep = document.createElement('div');
+    sep.className = 'si-separator';
+    sep.textContent = 'RECENT';
+    list.appendChild(sep);
+  }
+
+  for (const [id, { session, stats: st }] of completedEntries) {
+    list.appendChild(buildSessionItem(id, session, st ?? null, selectedId, onSelect, true));
+  }
+}
+
+function buildSessionItem(id, session, st, selectedId, onSelect, isCompleted) {
+  const li = document.createElement('li');
+  li.className = `session-item${id === selectedId ? ' active' : ''}${isCompleted ? ' ended' : ''}`;
+  li.dataset.id = id;
+
+  const models       = st ? Object.keys(st.models) : [];
+  const hasTokenData = st && st.hasTokenData !== false;
+  const tok          = hasTokenData ? fmtTokens(totalTokenCount(st.totalTokens)) : '—';
+  const cost         = hasTokenData ? `$${st.estimatedCostUSD.toFixed(4)}` : '—';
+
+  li.innerHTML = `
+    <div class="si-header">
+      <span class="si-dot${isCompleted ? ' si-dot-ended' : ''}"></span>
+      <span class="si-name">${projectName(session.cwd)}</span>
+      <span class="si-age">${timeAgo(session.startedAt)}</span>
+    </div>
+    <div class="si-tokens">${tok} tok &nbsp;<span class="si-cost">${cost}</span></div>
+    <div class="si-models">${models.map(m => `<span class="model-badge">${shortModel(m)}</span>`).join('')}${isCompleted ? '<span class="ended-badge">ended</span>' : ''}</div>
+  `;
+  li.addEventListener('click', () => onSelect(id));
+  return li;
 }
 
 // ── Global stats ───────────────────────────────────────────────────────────
