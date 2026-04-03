@@ -4,6 +4,8 @@
 
 Wlaudio reads directly from `~/.claude/` and streams live data to a browser dashboard — no agents, no API calls, no instrumentation needed. Start it alongside Claude Code and watch your sessions unfold.
 
+![Wlaudio dashboard screenshot](docs/screenshot.png)
+
 ---
 
 ## What it shows
