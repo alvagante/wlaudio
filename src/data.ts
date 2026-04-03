@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { CLAUDE_DIR } from './parser.js';
-import type { HistoryEntry, TodoItem, Plan, ClaudeSettings } from './types/index.js';
+import type { HistoryEntry, TodoItem, Plan, ClaudeSettings, SessionMeta, SessionFacets } from './types/index.js';
 
 export function loadHistory(): HistoryEntry[] {
   const path = join(CLAUDE_DIR, 'history.jsonl');
@@ -97,4 +97,61 @@ export function loadSettings(): ClaudeSettings | null {
   } catch {
     return null;
   }
+}
+
+export function loadAllSessionMetas(): Record<string, SessionMeta> {
+  const dir = join(CLAUDE_DIR, 'usage-data', 'session-meta');
+  if (!existsSync(dir)) return {};
+  const result: Record<string, SessionMeta> = {};
+  try {
+    for (const f of readdirSync(dir).filter(f => f.endsWith('.json'))) {
+      const sessionId = f.replace(/\.json$/, '');
+      try {
+        const raw = JSON.parse(readFileSync(join(dir, f), 'utf-8')) as Record<string, unknown>;
+        result[sessionId] = {
+          firstPrompt:            String(raw['first_prompt']          ?? ''),
+          durationMinutes:        Number(raw['duration_minutes']      ?? 0),
+          userMessageCount:       Number(raw['user_message_count']    ?? 0),
+          assistantMessageCount:  Number(raw['assistant_message_count'] ?? 0),
+          gitCommits:             Number(raw['git_commits']           ?? 0),
+          gitPushes:              Number(raw['git_pushes']            ?? 0),
+          linesAdded:             Number(raw['lines_added']           ?? 0),
+          linesRemoved:           Number(raw['lines_removed']         ?? 0),
+          filesModified:          Number(raw['files_modified']        ?? 0),
+          languages:              (raw['languages']   as Record<string, number>) ?? {},
+          toolErrors:             Number(raw['tool_errors']           ?? 0),
+          userInterruptions:      Number(raw['user_interruptions']    ?? 0),
+          usesMcp:                Boolean(raw['uses_mcp']),
+          usesWebSearch:          Boolean(raw['uses_web_search']),
+          usesWebFetch:           Boolean(raw['uses_web_fetch']),
+          usesTaskAgent:          Boolean(raw['uses_task_agent']),
+        };
+      } catch { /* skip malformed */ }
+    }
+  } catch { /* skip if dir missing */ }
+  return result;
+}
+
+export function loadAllSessionFacets(): Record<string, SessionFacets> {
+  const dir = join(CLAUDE_DIR, 'usage-data', 'facets');
+  if (!existsSync(dir)) return {};
+  const result: Record<string, SessionFacets> = {};
+  try {
+    for (const f of readdirSync(dir).filter(f => f.endsWith('.json'))) {
+      const sessionId = f.replace(/\.json$/, '');
+      try {
+        const raw = JSON.parse(readFileSync(join(dir, f), 'utf-8')) as Record<string, unknown>;
+        result[sessionId] = {
+          underlyingGoal:   String(raw['underlying_goal']   ?? ''),
+          goalCategories:   (raw['goal_categories']  as Record<string, number>) ?? {},
+          outcome:          String(raw['outcome']           ?? ''),
+          claudeHelpfulness: String(raw['claude_helpfulness'] ?? ''),
+          sessionType:      String(raw['session_type']      ?? ''),
+          briefSummary:     String(raw['brief_summary']     ?? ''),
+          primarySuccess:   String(raw['primary_success']   ?? ''),
+        };
+      } catch { /* skip malformed */ }
+    }
+  } catch { /* skip if dir missing */ }
+  return result;
 }

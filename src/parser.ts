@@ -178,7 +178,8 @@ export function computeSessionStats(allTurns: Turn[], sessionId: string): Sessio
   const totalTokens: TokenUsage = { inputTokens: 0, outputTokens: 0, cacheReadInputTokens: 0, cacheCreationInputTokens: 0 };
   const models: Record<string, TokenUsage> = {};
   const toolFrequency: Record<string, number> = {};
-  let toolCallCount = 0;
+  let toolCallCount  = 0;
+  let toolErrorCount = 0;
 
   for (const turn of allTurns) {
     if (turn.tokens) {
@@ -190,6 +191,7 @@ export function computeSessionStats(allTurns: Turn[], sessionId: string): Sessio
     }
     for (const tc of turn.toolCalls ?? []) {
       toolCallCount++;
+      if (tc.result?.isError) toolErrorCount++;
       toolFrequency[tc.name] = (toolFrequency[tc.name] ?? 0) + 1;
     }
   }
@@ -216,6 +218,7 @@ export function computeSessionStats(allTurns: Turn[], sessionId: string): Sessio
     totalTokens,
     estimatedCostUSD: Math.round(estimatedCostUSD * 10000) / 10000,
     toolCallCount,
+    toolErrorCount,
     turnCount: allTurns.length,
     durationMs,
     models,

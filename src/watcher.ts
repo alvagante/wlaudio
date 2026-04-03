@@ -9,7 +9,7 @@ import {
   loadGlobalStats,
   CLAUDE_DIR,
 } from './parser.js';
-import { loadHistory, loadAllTodos, loadPlans } from './data.js';
+import { loadHistory, loadAllTodos, loadPlans, loadAllSessionMetas, loadAllSessionFacets } from './data.js';
 import type {
   ActiveSession,
   Turn,
@@ -18,6 +18,8 @@ import type {
   HistoryEntry,
   TodoItem,
   Plan,
+  SessionMeta,
+  SessionFacets,
 } from './types/index.js';
 
 // ── Typed event emitter ────────────────────────────────────────────────────
@@ -30,6 +32,7 @@ interface WatcherEventMap {
   'history:updated': [entries: HistoryEntry[]];
   'todos:updated':   [todos: Record<string, TodoItem[]>];
   'plans:updated':   [plans: Plan[]];
+  'meta:updated':    [meta: Record<string, SessionMeta>, facets: Record<string, SessionFacets>];
 }
 
 class WatcherEmitter extends EventEmitter {
@@ -76,6 +79,8 @@ export function startWatcher(): void {
   const historyPath = join(CLAUDE_DIR, 'history.jsonl');
   const todosDir    = join(CLAUDE_DIR, 'todos');
   const plansDir    = join(CLAUDE_DIR, 'plans');
+  const metaDir     = join(CLAUDE_DIR, 'usage-data', 'session-meta');
+  const facetsDir   = join(CLAUDE_DIR, 'usage-data', 'facets');
 
   // React to session file changes (processes starting/stopping)
   chokidar
@@ -106,6 +111,14 @@ export function startWatcher(): void {
     .on('add',    () => emitter.emit('plans:updated', loadPlans()))
     .on('change', () => emitter.emit('plans:updated', loadPlans()))
     .on('unlink', () => emitter.emit('plans:updated', loadPlans()));
+
+  // React to usage-data files (written when sessions end)
+  const broadcastMeta = () =>
+    emitter.emit('meta:updated', loadAllSessionMetas(), loadAllSessionFacets());
+  chokidar
+    .watch([metaDir, facetsDir], { ignoreInitial: true, depth: 0 })
+    .on('add',    broadcastMeta)
+    .on('change', broadcastMeta);
 
   // Initial load
   syncSessions();

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 import { readFileSync, existsSync } from 'fs';
 import { emitter, getAllSessionStates, startWatcher } from './watcher.js';
 import { loadGlobalStats, CLAUDE_DIR } from './parser.js';
-import { loadHistory, loadAllTodos, loadPlans, loadSettings } from './data.js';
+import { loadHistory, loadAllTodos, loadPlans, loadSettings, loadAllSessionMetas, loadAllSessionFacets } from './data.js';
 import type {
   WsMessage,
   InitialStateData,
@@ -15,6 +15,7 @@ import type {
   HistoryUpdatedData,
   TodosUpdatedData,
   PlansUpdatedData,
+  MetaUpdatedData,
   ActiveSession,
   Turn,
   SessionStats,
@@ -22,6 +23,8 @@ import type {
   HistoryEntry,
   TodoItem,
   Plan,
+  SessionMeta,
+  SessionFacets,
 } from './types/index.js';
 
 const PORT = Number(process.env['PORT'] ?? 4242);
@@ -114,6 +117,11 @@ emitter.on('plans:updated', (plans: Plan[]) => {
   broadcast({ type: 'plans_updated', data });
 });
 
+emitter.on('meta:updated', (sessionMeta: Record<string, SessionMeta>, sessionFacets: Record<string, SessionFacets>) => {
+  const data: MetaUpdatedData = { sessionMeta, sessionFacets };
+  broadcast({ type: 'meta_updated', data });
+});
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function buildInitialState(): InitialStateData {
@@ -131,11 +139,13 @@ function buildInitialState(): InitialStateData {
     activeSessions,
     sessionStats,
     turns,
-    globalStats:  loadGlobalStats(),
-    history:      loadHistory(),
-    sessionTodos: loadAllTodos(),
-    plans:        loadPlans(),
-    settings:     loadSettings(),
+    globalStats:   loadGlobalStats(),
+    history:       loadHistory(),
+    sessionTodos:  loadAllTodos(),
+    plans:         loadPlans(),
+    settings:      loadSettings(),
+    sessionMeta:   loadAllSessionMetas(),
+    sessionFacets: loadAllSessionFacets(),
   };
 }
 
@@ -160,7 +170,7 @@ export function startServer(): void {
   startWatcher();
 
   httpServer.listen(PORT, () => {
-    console.log(`\n  ⬡  Claude Monitor\n`);
+    console.log(`\n  ⬡  Wlaudio, the Claude Monitor\n`);
     console.log(`  http://localhost:${PORT}\n`);
   });
 }

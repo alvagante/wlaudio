@@ -50,6 +50,11 @@ export function updateMetrics(stats, turns = []) {
   document.getElementById('m-cache-w').textContent  = fmtTokens(t.cacheCreationInputTokens);
   document.getElementById('m-tools').textContent    = stats.toolCallCount;
   document.getElementById('m-duration').textContent = fmtDuration(stats.durationMs);
+  const toolsSub = document.getElementById('m-tools-sub');
+  if (toolsSub) {
+    toolsSub.textContent = stats.toolErrorCount > 0 ? `${stats.toolErrorCount} errors` : 'total';
+    toolsSub.className   = stats.toolErrorCount > 0 ? 'metric-sub err' : 'metric-sub';
+  }
   document.getElementById('detail-cost').textContent = `$${stats.estimatedCostUSD.toFixed(4)}`;
   updateTokenChart(stats);
   updateToolBars(stats, turns);

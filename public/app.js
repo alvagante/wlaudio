@@ -1,5 +1,7 @@
 import { renderSidebar, renderGlobalStats, renderPlans, renderSettings, initPlanModal, openPlanModal } from './sidebar.js';
 import { initTabs, initToolPopup, initFilesPopup, openFilesPopup, updateDetailHeader, updateMetrics, resetTimeline, appendTurnsToTimeline, renderPrompts, renderTasks } from './render.js';
+import { updateSummaryCard, updateCodeImpact } from './insights.js';
+import { renderFileHistory } from './file-history.js';
 
 // ── State ──────────────────────────────────────────────────────────────────
 const state = {
@@ -10,7 +12,9 @@ const state = {
   history:     [],          // HistoryEntry[]
   todos:       {},          // sessionId → TodoItem[]
   plans:       [],          // Plan[]
-  settings:    null,        // ClaudeSettings | null
+  settings:    null,
+  meta:        {},          // sessionId → SessionMeta
+  facets:      {},          // sessionId → SessionFacets
   selectedId:  null,
 };
 
@@ -26,7 +30,7 @@ function connect() {
 }
 
 function setConn(up) {
-  document.getElementById('conn-dot').className    = `dot ${up ? 'connected' : 'disconnected'}`;
+  document.getElementById('conn-dot').className     = `dot ${up ? 'connected' : 'disconnected'}`;
   document.getElementById('conn-label').textContent = up ? 'LIVE' : 'RECONNECTING';
 }
 
@@ -41,20 +45,23 @@ function dispatch({ type, data }) {
     case 'history_updated': onHistoryUpdated(data); break;
     case 'todos_updated':   onTodosUpdated(data);   break;
     case 'plans_updated':   onPlansUpdated(data);   break;
+    case 'meta_updated':    onMetaUpdated(data);    break;
   }
 }
 
 // ── Event handlers ─────────────────────────────────────────────────────────
-function onInitialState({ activeSessions, sessionStats, turns, globalStats, history, sessionTodos, plans, settings }) {
+function onInitialState({ activeSessions, sessionStats, turns, globalStats, history, sessionTodos, plans, settings, sessionMeta, sessionFacets }) {
   state.sessions.clear(); state.stats.clear(); state.turns.clear();
-  for (const s of activeSessions)                        state.sessions.set(s.sessionId, s);
-  for (const [id, st] of Object.entries(sessionStats))   state.stats.set(id, st);
-  for (const [id, ts] of Object.entries(turns))          state.turns.set(id, ts);
+  for (const s of activeSessions)                       state.sessions.set(s.sessionId, s);
+  for (const [id, st] of Object.entries(sessionStats))  state.stats.set(id, st);
+  for (const [id, ts] of Object.entries(turns))         state.turns.set(id, ts);
   state.globalStats = globalStats;
   state.history     = history ?? [];
   state.todos       = sessionTodos ?? {};
   state.plans       = plans ?? [];
   state.settings    = settings ?? null;
+  state.meta        = sessionMeta ?? {};
+  state.facets      = sessionFacets ?? {};
   if (!state.selectedId && state.sessions.size > 0) {
     state.selectedId = [...state.sessions.keys()][0];
   }
@@ -89,7 +96,9 @@ function onTurnsUpdated({ sessionId, newTurns, stats }) {
   renderSidebarView();
   if (state.selectedId === sessionId) {
     updateMetrics(stats, existing);
+    updateCodeImpact(state.meta[sessionId] ?? null, stats);
     appendTurnsToTimeline(newTurns);
+    renderFileHistory(existing);
   }
 }
 
@@ -111,6 +120,15 @@ function onTodosUpdated({ todos }) {
 function onPlansUpdated({ plans }) {
   state.plans = plans;
   renderPlans(state.plans, openPlanModal);
+}
+
+function onMetaUpdated({ sessionMeta, sessionFacets }) {
+  state.meta   = sessionMeta ?? {};
+  state.facets = sessionFacets ?? {};
+  if (state.selectedId) {
+    updateSummaryCard(state.facets[state.selectedId] ?? null);
+    updateCodeImpact(state.meta[state.selectedId] ?? null, state.stats.get(state.selectedId) ?? null);
+  }
 }
 
 // ── Render orchestration ───────────────────────────────────────────────────
@@ -148,13 +166,18 @@ function renderDetailView() {
   const session = state.sessions.get(state.selectedId);
   const stats   = state.stats.get(state.selectedId);
   const turns   = state.turns.get(state.selectedId) ?? [];
+  const meta    = state.meta[state.selectedId]   ?? null;
+  const facets  = state.facets[state.selectedId] ?? null;
 
   updateDetailHeader(session);
   updateMetrics(stats, turns);
+  updateSummaryCard(facets);
+  updateCodeImpact(meta, stats);
   resetTimeline();
   appendTurnsToTimeline(turns);
   renderPrompts(state.selectedId, state.history);
   renderTasks(state.selectedId, state.todos);
+  renderFileHistory(turns);
 }
 
 // ── Boot ───────────────────────────────────────────────────────────────────

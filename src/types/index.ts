@@ -47,11 +47,41 @@ export interface SessionStats {
   totalTokens: TokenUsage;
   estimatedCostUSD: number;
   toolCallCount: number;
+  toolErrorCount: number;
   turnCount: number;
   durationMs: number;
   models: Record<string, TokenUsage>;
   toolFrequency: Record<string, number>;
   isSubagentActive: boolean;
+}
+
+export interface SessionMeta {
+  firstPrompt: string;
+  durationMinutes: number;
+  userMessageCount: number;
+  assistantMessageCount: number;
+  gitCommits: number;
+  gitPushes: number;
+  linesAdded: number;
+  linesRemoved: number;
+  filesModified: number;
+  languages: Record<string, number>;
+  toolErrors: number;
+  userInterruptions: number;
+  usesMcp: boolean;
+  usesWebSearch: boolean;
+  usesWebFetch: boolean;
+  usesTaskAgent: boolean;
+}
+
+export interface SessionFacets {
+  underlyingGoal: string;
+  goalCategories: Record<string, number>;
+  outcome: string;
+  claudeHelpfulness: string;
+  sessionType: string;
+  briefSummary: string;
+  primarySuccess: string;
 }
 
 export interface DailyActivity {
@@ -105,7 +135,8 @@ export type WsEventType =
   | 'stats_updated'
   | 'history_updated'
   | 'todos_updated'
-  | 'plans_updated';
+  | 'plans_updated'
+  | 'meta_updated';
 
 export interface WsMessage<T = unknown> {
   type: WsEventType;
@@ -121,6 +152,13 @@ export interface InitialStateData {
   sessionTodos: Record<string, TodoItem[]>;
   plans: Plan[];
   settings: ClaudeSettings | null;
+  sessionMeta: Record<string, SessionMeta>;
+  sessionFacets: Record<string, SessionFacets>;
+}
+
+export interface MetaUpdatedData {
+  sessionMeta: Record<string, SessionMeta>;
+  sessionFacets: Record<string, SessionFacets>;
 }
 
 export interface SessionAddedData {

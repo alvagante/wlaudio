@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Claude Monitor</title>
+  <title>Wlaudio, theClaude Monitor</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header>
-    <div class="logo">⬡ CLAUDE MONITOR</div>
+    <div class="logo">⬡ WLAUDIO, the CLAUDE MONITOR v0.2.0</div>
     <div class="conn-indicator">
       <span id="conn-dot" class="dot disconnected"></span>
       <span id="conn-label">CONNECTING</span>
@@ -52,9 +52,21 @@
           <div id="detail-meta" class="detail-meta"></div>
         </div>
         <div class="detail-header-actions">
-          <button id="files-btn" class="files-btn">FILES</button>
+          <button id="files-btn" class="files-btn">CLAUDE FILES</button>
           <div id="detail-cost" class="cost-badge"></div>
         </div>
+      </div>
+
+      <!-- AI insight summary (shown when facets data is available) -->
+      <div id="summary-card" class="summary-card hidden">
+        <div class="summary-top">
+          <span class="summary-label">GOAL</span>
+          <span id="summary-goal" class="summary-goal"></span>
+          <span id="summary-outcome" class="summary-badge"></span>
+          <span id="summary-helpful" class="summary-badge"></span>
+        </div>
+        <div id="summary-text" class="summary-text"></div>
+        <div id="summary-tags" class="summary-tags"></div>
       </div>
 
       <div class="metrics-grid">
@@ -81,12 +93,44 @@
         <div class="metric-card">
           <div class="metric-label">TOOLS CALLED</div>
           <div id="m-tools" class="metric-value orange">0</div>
-          <div class="metric-sub">total</div>
+          <div id="m-tools-sub" class="metric-sub">total</div>
         </div>
         <div class="metric-card">
           <div class="metric-label">DURATION</div>
           <div id="m-duration" class="metric-value teal">—</div>
           <div class="metric-sub">active</div>
+        </div>
+      </div>
+
+      <!-- Code impact row (shown when session-meta is available) -->
+      <div id="impact-row" class="impact-row hidden">
+        <div class="impact-card">
+          <div id="imp-add" class="impact-val green">—</div>
+          <div class="impact-label">LINES +</div>
+        </div>
+        <div class="impact-card">
+          <div id="imp-del" class="impact-val red">—</div>
+          <div class="impact-label">LINES −</div>
+        </div>
+        <div class="impact-card">
+          <div id="imp-files" class="impact-val blue">—</div>
+          <div class="impact-label">FILES</div>
+        </div>
+        <div class="impact-card">
+          <div id="imp-commits" class="impact-val yellow">—</div>
+          <div class="impact-label">COMMITS</div>
+        </div>
+        <div class="impact-card">
+          <div id="imp-pushes" class="impact-val purple">—</div>
+          <div class="impact-label">PUSHES</div>
+        </div>
+        <div class="impact-card impact-card-wide">
+          <div id="imp-langs" class="impact-val teal">—</div>
+          <div class="impact-label">LANGUAGES</div>
+        </div>
+        <div class="impact-card">
+          <div id="imp-interrupts" class="impact-val dim">—</div>
+          <div class="impact-label">INTERRUPTS</div>
         </div>
       </div>
 
@@ -112,6 +156,9 @@
         <button class="tab" data-tab="tasks">
           TASKS <span id="tasks-count" class="badge">0</span>
         </button>
+        <button class="tab" data-tab="files">
+          FILES <span id="fileops-count" class="badge">0</span>
+        </button>
       </div>
 
       <!-- Tab panels -->
@@ -123,6 +170,12 @@
       </div>
       <div id="tab-tasks" class="tab-content hidden">
         <div id="tasks-list" class="tasks-list"></div>
+      </div>
+      <div id="tab-files" class="tab-content hidden">
+        <div class="fh-layout">
+          <div class="fh-list" id="fh-file-list"></div>
+          <div class="fh-ops" id="fh-ops-panel"></div>
+        </div>
       </div>
     </div>
   </main>
@@ -162,5 +215,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script type="module" src="app.js"></script>
+
 </body>
 </html>
