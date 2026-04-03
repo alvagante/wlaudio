@@ -231,11 +231,22 @@ export function loadGlobalStats(): GlobalStats | null {
   const statsPath = join(CLAUDE_DIR, 'stats-cache.json');
   try {
     const data = JSON.parse(readFileSync(statsPath, 'utf-8')) as Record<string, unknown>;
+    const rawLongest = data['longestSession'] as Record<string, unknown> | null | undefined;
     return {
-      totalSessions:  Number(data['totalSessions'] ?? 0),
-      totalMessages:  Number(data['totalMessages'] ?? 0),
-      dailyActivity:  ((data['dailyActivity'] as unknown[] | undefined) ?? []).slice(-30) as GlobalStats['dailyActivity'],
-      modelUsage:     (data['modelUsage'] as Record<string, TokenUsage> | undefined) ?? {},
+      totalSessions:    Number(data['totalSessions'] ?? 0),
+      totalMessages:    Number(data['totalMessages'] ?? 0),
+      dailyActivity:    ((data['dailyActivity'] as unknown[] | undefined) ?? []).slice(-30) as GlobalStats['dailyActivity'],
+      modelUsage:       (data['modelUsage'] as Record<string, TokenUsage> | undefined) ?? {},
+      hourCounts:       (data['hourCounts'] as Record<string, number> | undefined) ?? {},
+      firstSessionDate: data['firstSessionDate'] != null ? String(data['firstSessionDate']) : '',
+      longestSession:   rawLongest
+        ? {
+            sessionId:       String(rawLongest['sessionId']       ?? ''),
+            durationMinutes: Number(rawLongest['durationMinutes'] ?? rawLongest['duration'] ?? 0),
+            messageCount:    Number(rawLongest['messageCount']    ?? 0),
+            timestamp:       String(rawLongest['timestamp']       ?? ''),
+          }
+        : null,
     };
   } catch {
     return null;

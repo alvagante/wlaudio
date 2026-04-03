@@ -129,6 +129,7 @@ export function loadAllSessionMetas(): Record<string, SessionMeta> {
           usesWebSearch:          Boolean(raw['uses_web_search']),
           usesWebFetch:           Boolean(raw['uses_web_fetch']),
           usesTaskAgent:          Boolean(raw['uses_task_agent']),
+          messageHours:           Array.isArray(raw['message_hours']) ? (raw['message_hours'] as number[]) : undefined,
         };
       } catch { /* skip malformed */ }
     }
@@ -146,13 +147,16 @@ export function loadAllSessionFacets(): Record<string, SessionFacets> {
       try {
         const raw = JSON.parse(readFileSync(join(dir, f), 'utf-8')) as Record<string, unknown>;
         result[sessionId] = {
-          underlyingGoal:   String(raw['underlying_goal']   ?? ''),
-          goalCategories:   (raw['goal_categories']  as Record<string, number>) ?? {},
-          outcome:          String(raw['outcome']           ?? ''),
-          claudeHelpfulness: String(raw['claude_helpfulness'] ?? ''),
-          sessionType:      String(raw['session_type']      ?? ''),
-          briefSummary:     String(raw['brief_summary']     ?? ''),
-          primarySuccess:   String(raw['primary_success']   ?? ''),
+          underlyingGoal:        String(raw['underlying_goal']    ?? ''),
+          goalCategories:        (raw['goal_categories']  as Record<string, number>) ?? {},
+          outcome:               String(raw['outcome']            ?? ''),
+          claudeHelpfulness:     String(raw['claude_helpfulness'] ?? ''),
+          sessionType:           String(raw['session_type']       ?? ''),
+          briefSummary:          String(raw['brief_summary']      ?? ''),
+          primarySuccess:        String(raw['primary_success']    ?? ''),
+          frictionCounts:        (raw['friction_counts']         as Record<string, number> | undefined) ?? undefined,
+          frictionDetail:        raw['friction_detail'] != null ? String(raw['friction_detail']) : undefined,
+          userSatisfactionCounts: (raw['user_satisfaction_counts'] as Record<string, number> | undefined) ?? undefined,
         };
       } catch { /* skip malformed */ }
     }

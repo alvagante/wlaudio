@@ -59,6 +59,11 @@ header {
   color: var(--blue);
 }
 
+.header-nav { display: flex; gap: 1.25rem; }
+.nav-link { color: var(--dim); text-decoration: none; font-size: 0.7rem; letter-spacing: 0.1em; font-weight: 600; transition: color 0.15s; }
+.nav-link:hover { color: var(--blue); }
+.nav-link.active { color: var(--blue); }
+
 .conn-indicator {
   display: flex;
   align-items: center;
@@ -841,3 +846,37 @@ header {
 ::-webkit-scrollbar       { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--overlay); border-radius: 99px; }
+
+/* ── First prompt card ─────────────────────────────────────────────────── */
+.first-prompt-card { background: var(--surface0, var(--surface)); border-left: 2px solid var(--blue); border-radius: 4px; padding: 0.6rem 0.85rem; margin-bottom: 0.75rem; }
+.fp-label { font-size: 0.6rem; font-weight: 600; color: var(--blue); letter-spacing: 0.08em; display: block; margin-bottom: 0.3rem; }
+.fp-text { font-size: 0.72rem; color: var(--subtext); line-height: 1.5; margin: 0; white-space: pre-wrap; word-break: break-word; max-height: 3.6rem; overflow: hidden; }
+
+/* ── Summary friction ──────────────────────────────────────────────────── */
+.summary-friction-detail { font-size: 0.7rem; color: var(--subtext); margin-top: 0.3rem; font-style: italic; }
+
+/* ── Activity hours ────────────────────────────────────────────────────── */
+.activity-hours { margin-bottom: 0.75rem; }
+.ah-label { font-size: 0.6rem; font-weight: 600; color: var(--subtext); letter-spacing: 0.08em; margin-bottom: 0.35rem; }
+.ah-bars { display: flex; align-items: flex-end; gap: 2px; height: 28px; }
+.ah-bar { flex: 1; background: #89b4fa55; border-radius: 1px; transition: background 0.1s; min-height: 2px; }
+.ah-bar:hover { background: #89b4fa; }
+.ah-bar.empty { background: var(--overlay); min-height: 2px; }
+
+/* ── Per-model cost breakdown in tooltip ───────────────────────────────── */
+.ct-model-breakdown { margin-bottom: 0.5rem; }
+.ct-model-row { display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.7rem; padding: 0.15rem 0; }
+.ct-model-name { color: var(--subtext); }
+.ct-model-cost { color: var(--green); font-weight: 500; }
+.ct-divider { border: none; border-top: 1px solid var(--border); margin: 0.4rem 0; }
+
+/* ── Sidebar outcome badge ─────────────────────────────────────────────── */
+.si-outcome { font-size: 0.6rem; font-weight: 500; padding: 0.1rem 0.35rem; border-radius: 3px; }
+.si-outcome.green  { background: rgba(166,227,161,0.15); color: var(--green); }
+.si-outcome.yellow { background: rgba(249,226,175,0.15); color: var(--yellow); }
+.si-outcome.orange { background: rgba(250,179,135,0.15); color: var(--orange); }
+.si-outcome.red    { background: rgba(243,139,168,0.15); color: var(--red); }
+.si-outcome.dim    { background: rgba(88,91,112,0.2);    color: var(--dim); }
+
+/* ── Sidebar first prompt ──────────────────────────────────────────────── */
+.si-prompt { font-size: 0.62rem; color: var(--dim); margin-top: 0.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }

@@ -5,7 +5,7 @@ let sparklineChart = null;
 
 // ── Session list ───────────────────────────────────────────────────────────
 
-export function renderSidebar(sessions, stats, selectedId, onSelect, completed = new Map()) {
+export function renderSidebar(sessions, stats, selectedId, onSelect, completed = new Map(), facets = {}, meta = {}) {
   const list  = document.getElementById('session-list');
   const count = document.getElementById('session-count');
   count.textContent = sessions.size;
@@ -14,7 +14,7 @@ export function renderSidebar(sessions, stats, selectedId, onSelect, completed =
 
   // Active sessions first
   for (const [id, session] of sessions) {
-    list.appendChild(buildSessionItem(id, session, stats.get(id), selectedId, onSelect, false));
+    list.appendChild(buildSessionItem(id, session, stats.get(id), selectedId, onSelect, false, facets[id] ?? null, meta[id] ?? null));
   }
 
   // Completed sessions (up to 15, most recent first)
@@ -30,11 +30,24 @@ export function renderSidebar(sessions, stats, selectedId, onSelect, completed =
   }
 
   for (const [id, { session, stats: st }] of completedEntries) {
-    list.appendChild(buildSessionItem(id, session, st ?? null, selectedId, onSelect, true));
+    list.appendChild(buildSessionItem(id, session, st ?? null, selectedId, onSelect, true, facets[id] ?? null, meta[id] ?? null));
   }
 }
 
-function buildSessionItem(id, session, st, selectedId, onSelect, isCompleted) {
+const OUTCOME_COLOR_SIDEBAR = {
+  achieved:           'green',
+  mostly_achieved:    'yellow',
+  partially_achieved: 'orange',
+  not_achieved:       'red',
+};
+
+function truncate(str, max) {
+  if (!str || str.length <= max) return str ?? '';
+  const cut = str.lastIndexOf(' ', max);
+  return (cut > max - 20 ? str.slice(0, cut) : str.slice(0, max)) + '…';
+}
+
+function buildSessionItem(id, session, st, selectedId, onSelect, isCompleted, facets, meta) {
   const li = document.createElement('li');
   li.className = `session-item${id === selectedId ? ' active' : ''}${isCompleted ? ' ended' : ''}`;
   li.dataset.id = id;
@@ -44,6 +57,20 @@ function buildSessionItem(id, session, st, selectedId, onSelect, isCompleted) {
   const tok          = hasTokenData ? fmtTokens(totalTokenCount(st.totalTokens)) : '—';
   const cost         = hasTokenData ? `$${st.estimatedCostUSD.toFixed(4)}` : '—';
 
+  // Outcome badge for completed sessions
+  let outcomeBadge = '';
+  if (isCompleted && facets && facets.outcome) {
+    const colorCls = OUTCOME_COLOR_SIDEBAR[facets.outcome] ?? 'dim';
+    const label = facets.outcome.replace(/_/g, ' ');
+    outcomeBadge = `<span class="si-outcome ${colorCls}">${escHtml(label)}</span>`;
+  }
+
+  // First prompt subtitle for completed sessions
+  let firstPromptLine = '';
+  if (isCompleted && meta && meta.firstPrompt) {
+    firstPromptLine = `<div class="si-prompt">${escHtml(truncate(meta.firstPrompt, 60))}</div>`;
+  }
+
   li.innerHTML = `
     <div class="si-header">
       <span class="si-dot${isCompleted ? ' si-dot-ended' : ''}"></span>
@@ -51,7 +78,8 @@ function buildSessionItem(id, session, st, selectedId, onSelect, isCompleted) {
       <span class="si-age">${timeAgo(session.startedAt)}</span>
     </div>
     <div class="si-tokens">${tok} tok &nbsp;<span class="si-cost">${cost}</span></div>
-    <div class="si-models">${models.map(m => `<span class="model-badge">${shortModel(m)}</span>`).join('')}${isCompleted ? '<span class="ended-badge">ended</span>' : ''}</div>
+    <div class="si-models">${models.map(m => `<span class="model-badge">${shortModel(m)}</span>`).join('')}${isCompleted ? '<span class="ended-badge">ended</span>' : ''}${outcomeBadge}</div>
+    ${firstPromptLine}
   `;
   li.addEventListener('click', () => onSelect(id));
   return li;

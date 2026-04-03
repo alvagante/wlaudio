@@ -1,0 +1,277 @@
+/* ── Catppuccin Mocha palette ─────────────────────────────────────────────── */
+:root {
+  --bg:        #1e1e2e;
+  --surface:   #181825;
+  --surface2:  #11111b;
+  --overlay:   #313244;
+  --border:    #45475a;
+  --text:      #cdd6f4;
+  --subtext:   #a6adc8;
+  --dim:       #585b70;
+
+  --blue:      #89b4fa;
+  --green:     #a6e3a1;
+  --yellow:    #f9e2af;
+  --orange:    #fab387;
+  --red:       #f38ba8;
+  --purple:    #cba6f7;
+  --pink:      #f5c2e7;
+  --teal:      #94e2d5;
+  --sky:       #89dceb;
+
+  --header-h: 3rem;
+  --radius: 8px;
+}
+
+/* ── Reset ───────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+header {
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.25rem;
+  height: var(--header-h);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.logo {
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.1em;
+  color: var(--blue);
+}
+
+.header-nav { display: flex; gap: 1.25rem; }
+.nav-link { color: var(--dim); text-decoration: none; font-size: 0.7rem; letter-spacing: 0.1em; font-weight: 600; transition: color 0.15s; }
+.nav-link:hover { color: var(--blue); }
+.nav-link.active { color: var(--blue); }
+
+/* ── Main layout ─────────────────────────────────────────────────────────── */
+.an-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ── Loading / error ─────────────────────────────────────────────────────── */
+.an-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--dim);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+}
+
+/* ── Summary stat cards ──────────────────────────────────────────────────── */
+.an-summary-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 900px) {
+  .an-summary-row { grid-template-columns: repeat(2, 1fr); }
+  .an-two-col     { grid-template-columns: 1fr; }
+}
+
+.an-stat-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--overlay);
+}
+
+.an-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--dim);
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+}
+
+.an-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.1;
+}
+
+.an-sub {
+  font-size: 0.68rem;
+  color: var(--subtext);
+  margin-top: 0.25rem;
+}
+
+/* ── Section wrapper ─────────────────────────────────────────────────────── */
+.an-section {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--overlay);
+}
+
+.an-section-title {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--dim);
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+}
+
+/* ── Two-column row ──────────────────────────────────────────────────────── */
+.an-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.an-two-col .an-section { margin-bottom: 0; }
+
+/* ── Hourly chart ────────────────────────────────────────────────────────── */
+.an-chart-wrap {
+  position: relative;
+  height: 160px;
+}
+
+.an-hour-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.6rem;
+  color: var(--dim);
+  margin-top: 0.35rem;
+  padding: 0 2px;
+}
+
+/* ── Outcome chart ───────────────────────────────────────────────────────── */
+.an-outcome-wrap {
+  position: relative;
+  height: 140px;
+  margin-bottom: 0.75rem;
+}
+
+.an-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-top: 0.6rem;
+}
+
+.an-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.68rem;
+  color: var(--subtext);
+}
+
+.an-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Language bars ───────────────────────────────────────────────────────── */
+.an-lang-bar-row {
+  display: grid;
+  grid-template-columns: 90px 1fr 48px;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.an-lang-name {
+  font-size: 0.68rem;
+  color: var(--subtext);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.an-lang-track {
+  height: 10px;
+  background: var(--overlay);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.an-lang-fill {
+  height: 100%;
+  background: var(--purple);
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.an-lang-count {
+  font-size: 0.65rem;
+  color: var(--dim);
+  text-align: right;
+}
+
+/* ── Model table ─────────────────────────────────────────────────────────── */
+.an-model-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+}
+
+.an-model-table th {
+  text-align: left;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--dim);
+  padding: 0.3rem 0.6rem;
+  border-bottom: 1px solid var(--overlay);
+}
+
+.an-model-table td {
+  padding: 0.55rem 0.6rem;
+  color: var(--subtext);
+  border-bottom: 1px solid var(--surface2);
+}
+
+.an-model-table tr:last-child td { border-bottom: none; }
+
+.an-model-table .col-model { color: var(--text); font-weight: 500; }
+.an-model-table .col-cost  { color: var(--green); font-weight: 600; }
+.an-model-table .total-row td { color: var(--text); border-top: 1px solid var(--border); font-weight: 600; }
+.an-model-table .total-row .col-cost { color: var(--green); }
+
+/* ── Utility ─────────────────────────────────────────────────────────────── */
+.hidden { display: none !important; }
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+.an-empty {
+  color: var(--dim);
+  font-size: 0.75rem;
+  text-align: center;
+  padding: 1.5rem 0;
+}

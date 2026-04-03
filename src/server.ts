@@ -25,6 +25,8 @@ import type {
   Plan,
   SessionMeta,
   SessionFacets,
+  AnalyticsData,
+  TokenUsage,
 } from './types/index.js';
 
 const PORT = Number(process.env['PORT'] ?? 4242);
@@ -40,6 +42,69 @@ app.use(express.static(publicDir));
 
 app.get('/api/state', (_req, res) => {
   res.json(buildInitialState());
+});
+
+// ── Analytics API ──────────────────────────────────────────────────────────
+
+const ANALYTICS_PRICING = {
+  opus:   { inputPerM: 15,  outputPerM: 75, cacheReadPerM: 1.5,  cacheWritePerM: 18.75 },
+  sonnet: { inputPerM: 3,   outputPerM: 15, cacheReadPerM: 0.3,  cacheWritePerM: 3.75  },
+  haiku:  { inputPerM: 0.8, outputPerM: 4,  cacheReadPerM: 0.08, cacheWritePerM: 1     },
+} as const;
+
+function modelPricing(model: string) {
+  if (model.includes('opus'))  return ANALYTICS_PRICING.opus;
+  if (model.includes('haiku')) return ANALYTICS_PRICING.haiku;
+  return ANALYTICS_PRICING.sonnet;
+}
+
+app.get('/api/v1/analytics', (_req, res) => {
+  const globalStats = loadGlobalStats();
+  const allMetas    = loadAllSessionMetas();
+  const allFacets   = loadAllSessionFacets();
+
+  const outcomeCounts: Record<string, number>     = {};
+  const sessionTypeCounts: Record<string, number> = {};
+  for (const f of Object.values(allFacets)) {
+    if (f.outcome)     outcomeCounts[f.outcome]         = (outcomeCounts[f.outcome]         ?? 0) + 1;
+    if (f.sessionType) sessionTypeCounts[f.sessionType] = (sessionTypeCounts[f.sessionType] ?? 0) + 1;
+  }
+
+  const languageTotals: Record<string, number> = {};
+  for (const m of Object.values(allMetas)) {
+    for (const [lang, count] of Object.entries(m.languages ?? {})) {
+      languageTotals[lang] = (languageTotals[lang] ?? 0) + count;
+    }
+  }
+
+  const modelAnalytics: AnalyticsData['modelAnalytics'] = {};
+  for (const [model, tokens] of Object.entries(globalStats?.modelUsage ?? {})) {
+    const p = modelPricing(model);
+    const t = tokens as TokenUsage;
+    modelAnalytics[model] = {
+      tokens: t,
+      costUSD: Math.round((
+        t.inputTokens              / 1e6 * p.inputPerM  +
+        t.outputTokens             / 1e6 * p.outputPerM +
+        t.cacheReadInputTokens     / 1e6 * p.cacheReadPerM +
+        t.cacheCreationInputTokens / 1e6 * p.cacheWritePerM
+      ) * 10000) / 10000,
+    };
+  }
+
+  const analytics: AnalyticsData = {
+    totalSessions:    globalStats?.totalSessions   ?? 0,
+    totalMessages:    globalStats?.totalMessages   ?? 0,
+    firstSessionDate: globalStats?.firstSessionDate ?? '',
+    longestSession:   globalStats?.longestSession  ?? null,
+    hourCounts:       globalStats?.hourCounts      ?? {},
+    outcomeCounts,
+    languageTotals,
+    sessionTypeCounts,
+    modelAnalytics,
+  };
+
+  res.json(analytics);
 });
 
 app.get('/api/v1/session-files', (req, res) => {

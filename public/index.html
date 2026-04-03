@@ -8,7 +8,10 @@
 </head>
 <body>
   <header>
-    <div class="logo">⬡ WLAUDIO, the CLAUDE MONITOR v0.2.1</div>
+    <div class="logo">⬡ WLAUDIO, the CLAUDE MONITOR v0.3.0</div>
+    <nav class="header-nav">
+      <a href="/analytics.html" class="nav-link">ANALYTICS</a>
+    </nav>
     <div class="conn-indicator">
       <span id="conn-dot" class="dot disconnected"></span>
       <span id="conn-label">CONNECTING</span>
@@ -56,6 +59,7 @@
           <div class="cost-wrap">
             <div id="detail-cost" class="cost-badge"></div>
             <div class="cost-tooltip">
+              <div id="ct-model-breakdown" class="ct-model-breakdown"></div>
               <div class="ct-title">Estimated API cost</div>
               <div class="ct-note">What this session would cost via direct API access — without a Claude Code subscription. Subscribers pay a flat monthly fee instead.</div>
               <table class="ct-table">
@@ -74,6 +78,9 @@
         </div>
       </div>
 
+      <!-- First prompt card -->
+      <div id="first-prompt-card" class="first-prompt-card hidden"><span class="fp-label">FIRST PROMPT</span><p id="first-prompt-text" class="fp-text"></p></div>
+
       <!-- AI insight summary (shown when facets data is available) -->
       <div id="summary-card" class="summary-card hidden">
         <div class="summary-top">
@@ -81,8 +88,10 @@
           <span id="summary-goal" class="summary-goal"></span>
           <span id="summary-outcome" class="summary-badge"></span>
           <span id="summary-helpful" class="summary-badge"></span>
+          <span id="summary-friction" class="summary-badge hidden"></span>
         </div>
         <div id="summary-text" class="summary-text"></div>
+        <div id="summary-friction-detail" class="summary-friction-detail"></div>
         <div id="summary-tags" class="summary-tags"></div>
       </div>
 
@@ -150,6 +159,8 @@
           <div class="impact-label">INTERRUPTS</div>
         </div>
       </div>
+
+      <div id="activity-hours" class="activity-hours hidden"><div class="ah-label">ACTIVE HOURS</div><div id="ah-bars" class="ah-bars"></div></div>
 
       <div class="charts-row">
         <div class="chart-card">

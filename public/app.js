@@ -1,6 +1,6 @@
 import { renderSidebar, renderGlobalStats, renderPlans, renderSettings, initPlanModal, openPlanModal } from './sidebar.js';
 import { initTabs, initToolPopup, initFilesPopup, openFilesPopup, updateDetailHeader, updateMetrics, resetTimeline, appendTurnsToTimeline, renderPrompts, renderTasks } from './render.js';
-import { updateSummaryCard, updateCodeImpact } from './insights.js';
+import { updateSummaryCard, updateCodeImpact, updateFirstPrompt, updateActivityHours } from './insights.js';
 import { renderFileHistory } from './file-history.js';
 
 // ── State ──────────────────────────────────────────────────────────────────
@@ -161,8 +161,11 @@ function onMetaUpdated({ sessionMeta, sessionFacets }) {
   state.meta   = sessionMeta ?? {};
   state.facets = sessionFacets ?? {};
   if (state.selectedId) {
+    const meta = state.meta[state.selectedId] ?? null;
     updateSummaryCard(state.facets[state.selectedId] ?? null);
-    updateCodeImpact(state.meta[state.selectedId] ?? null, state.stats.get(state.selectedId) ?? null);
+    updateFirstPrompt(meta);
+    updateActivityHours(meta);
+    updateCodeImpact(meta, state.stats.get(state.selectedId) ?? null);
   }
 }
 
@@ -186,7 +189,7 @@ function isSessionKnown(id) {
 }
 
 function renderSidebarView() {
-  renderSidebar(state.sessions, state.stats, state.selectedId, selectSession, state.completed);
+  renderSidebar(state.sessions, state.stats, state.selectedId, selectSession, state.completed, state.facets, state.meta);
 }
 
 function renderDetailView() {
@@ -214,7 +217,9 @@ function renderDetailView() {
 
   updateDetailHeader(session, isCompleted && !isActive);
   updateMetrics(stats, turns);
+  updateFirstPrompt(meta);
   updateSummaryCard(facets);
+  updateActivityHours(meta);
   updateCodeImpact(meta, stats);
   resetTimeline();
   appendTurnsToTimeline(turns);

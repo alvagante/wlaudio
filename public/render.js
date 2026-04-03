@@ -36,7 +36,7 @@ export function updateDetailHeader(session, isCompleted = false) {
   })();
   document.getElementById('detail-project').textContent = name;
   document.getElementById('detail-meta').textContent =
-    `${session.cwd}  •  started ${age}  •  ${isCompleted ? 'ended' : session.kind}`;
+    `${session.cwd}  •  started ${age}  •  ${session.entrypoint ?? 'cli'} / ${isCompleted ? 'ended' : session.kind}`;
 }
 
 // ── Metrics ────────────────────────────────────────────────────────────────
@@ -52,6 +52,7 @@ export function updateMetrics(stats, turns = []) {
     document.getElementById('detail-cost').textContent = '—';
     const toolsSub = document.getElementById('m-tools-sub');
     if (toolsSub) { toolsSub.textContent = 'total'; toolsSub.className = 'metric-sub'; }
+    updateModelBreakdown(null);
     updateToolBars(null, []);
     return;
   }
@@ -78,7 +79,51 @@ export function updateMetrics(stats, turns = []) {
     toolsSub.textContent = stats.toolErrorCount > 0 ? `${stats.toolErrorCount} errors` : 'total';
     toolsSub.className   = stats.toolErrorCount > 0 ? 'metric-sub err' : 'metric-sub';
   }
+  updateModelBreakdown(stats);
   updateToolBars(stats, turns);
+}
+
+// ── Per-model cost breakdown in tooltip ────────────────────────────────────
+
+const MODEL_PRICING = {
+  opus:    { input: 15,  output: 75  },
+  sonnet:  { input: 3,   output: 15  },
+  haiku:   { input: 0.8, output: 4   },
+};
+
+function getModelPricing(modelName) {
+  const lower = modelName.toLowerCase();
+  if (lower.includes('opus'))   return MODEL_PRICING.opus;
+  if (lower.includes('haiku'))  return MODEL_PRICING.haiku;
+  return MODEL_PRICING.sonnet; // default to sonnet
+}
+
+function fmtTokShort(n) {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
+  if (n >= 1_000)     return (n / 1_000).toFixed(1) + 'k';
+  return String(n);
+}
+
+function updateModelBreakdown(stats) {
+  const el = document.getElementById('ct-model-breakdown');
+  if (!el) return;
+  if (!stats || stats.hasTokenData === false || !stats.models || !Object.keys(stats.models).length) {
+    el.innerHTML = '';
+    return;
+  }
+  const rows = Object.entries(stats.models).map(([model, usage]) => {
+    const pricing = getModelPricing(model);
+    const inp  = usage.inputTokens  ?? 0;
+    const out  = usage.outputTokens ?? 0;
+    const cost = (inp * pricing.input + out * pricing.output) / 1_000_000;
+    const shortName = model.split('-').slice(0, 2).join('-');
+    return `<div class="ct-model-row">
+      <span class="ct-model-name">${escHtml(shortName)}</span>
+      <span class="ct-model-cost">$${cost.toFixed(4)}</span>
+      <span style="font-size:0.65rem;color:var(--dim)">${fmtTokShort(inp)}in / ${fmtTokShort(out)}out</span>
+    </div>`;
+  }).join('');
+  el.innerHTML = rows + '<hr class="ct-divider">';
 }
 
 // ── Token doughnut ─────────────────────────────────────────────────────────

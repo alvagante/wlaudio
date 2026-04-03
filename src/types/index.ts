@@ -76,6 +76,7 @@ export interface SessionMeta {
   usesWebSearch: boolean;
   usesWebFetch: boolean;
   usesTaskAgent: boolean;
+  messageHours?: number[];
 }
 
 export interface SessionFacets {
@@ -86,6 +87,9 @@ export interface SessionFacets {
   sessionType: string;
   briefSummary: string;
   primarySuccess: string;
+  frictionCounts?: Record<string, number>;
+  frictionDetail?: string;
+  userSatisfactionCounts?: Record<string, number>;
 }
 
 export interface DailyActivity {
@@ -100,6 +104,26 @@ export interface GlobalStats {
   totalMessages: number;
   dailyActivity: DailyActivity[];
   modelUsage: Record<string, TokenUsage>;
+  hourCounts?: Record<string, number>;
+  longestSession?: { sessionId: string; durationMinutes: number; messageCount: number; timestamp: string } | null;
+  firstSessionDate?: string;
+}
+
+export interface ModelAnalytics {
+  tokens: TokenUsage;
+  costUSD: number;
+}
+
+export interface AnalyticsData {
+  totalSessions: number;
+  totalMessages: number;
+  firstSessionDate: string;
+  longestSession: { sessionId: string; durationMinutes: number; messageCount: number; timestamp: string } | null;
+  hourCounts: Record<string, number>;
+  outcomeCounts: Record<string, number>;
+  languageTotals: Record<string, number>;
+  sessionTypeCounts: Record<string, number>;
+  modelAnalytics: Record<string, ModelAnalytics>;
 }
 
 // ── New data types ─────────────────────────────────────────────────────────

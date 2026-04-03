@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wlaudio — Analytics</title>
+  <link rel="stylesheet" href="analytics.css" />
+</head>
+<body>
+
+  <header>
+    <div class="logo">⬡ WLAUDIO, the CLAUDE MONITOR v0.3.0</div>
+    <nav class="header-nav">
+      <a href="/" class="nav-link">← DASHBOARD</a>
+      <a href="/analytics.html" class="nav-link active">ANALYTICS</a>
+    </nav>
+  </header>
+
+  <main class="an-main">
+
+    <div id="an-loading" class="an-loading">LOADING…</div>
+
+    <div id="an-content" class="hidden">
+
+      <!-- Summary cards -->
+      <div class="an-summary-row">
+        <div class="an-stat-card">
+          <div class="an-label">Total Sessions</div>
+          <div id="an-total-sessions" class="an-value">—</div>
+        </div>
+        <div class="an-stat-card">
+          <div class="an-label">Total Messages</div>
+          <div id="an-total-messages" class="an-value">—</div>
+        </div>
+        <div class="an-stat-card">
+          <div class="an-label">Using Claude Since</div>
+          <div id="an-since" class="an-value" style="font-size:1rem">—</div>
+        </div>
+        <div class="an-stat-card">
+          <div class="an-label">Longest Session</div>
+          <div id="an-longest-val" class="an-value">—</div>
+          <div id="an-longest-sub" class="an-sub"></div>
+        </div>
+      </div>
+
+      <!-- Hourly activity -->
+      <div class="an-section">
+        <div class="an-section-title">Activity by Hour of Day</div>
+        <div class="an-chart-wrap">
+          <canvas id="hourly-chart"></canvas>
+        </div>
+        <div class="an-hour-labels">
+          <span>0</span><span>3</span><span>6</span><span>9</span>
+          <span>12</span><span>15</span><span>18</span><span>21</span><span>23</span>
+        </div>
+      </div>
+
+      <!-- Outcomes + Languages -->
+      <div class="an-two-col">
+
+        <div class="an-section">
+          <div class="an-section-title">Session Outcomes</div>
+          <div id="an-outcome-wrap" class="an-outcome-wrap">
+            <canvas id="outcome-chart"></canvas>
+          </div>
+          <div id="outcome-legend" class="an-legend"></div>
+        </div>
+
+        <div class="an-section">
+          <div class="an-section-title">Languages Worked In</div>
+          <div id="an-lang-bars"></div>
+        </div>
+
+      </div>
+
+      <!-- Model cost table -->
+      <div class="an-section">
+        <div class="an-section-title">Model Usage &amp; Estimated Cost</div>
+        <table id="model-table" class="an-model-table"></table>
+      </div>
+
+    </div><!-- /#an-content -->
+
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="analytics.js"></script>
+
+</body>
+</html>
