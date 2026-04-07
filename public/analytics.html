@@ -74,10 +74,47 @@
 
       </div>
 
+      <!-- Daily cost -->
+      <div class="an-section">
+        <div class="an-section-title">Daily Estimated Cost (last 60 days)</div>
+        <div class="an-chart-wrap an-chart-tall">
+          <canvas id="daily-cost-chart"></canvas>
+        </div>
+        <div id="daily-cost-legend" class="an-legend" style="margin-top:0.6rem"></div>
+      </div>
+
+      <!-- Code velocity -->
+      <div class="an-section">
+        <div class="an-section-title">Code Velocity — Lines Changed per Day</div>
+        <div class="an-chart-wrap an-chart-tall">
+          <canvas id="velocity-chart"></canvas>
+        </div>
+      </div>
+
       <!-- Model cost table -->
       <div class="an-section">
-        <div class="an-section-title">Model Usage &amp; Estimated Cost</div>
+        <div class="an-section-title">Model Usage &amp; Estimated Cost (all time)</div>
         <table id="model-table" class="an-model-table"></table>
+      </div>
+
+      <!-- Quality signals -->
+      <div class="an-two-col">
+
+        <div class="an-section">
+          <div class="an-section-title">Claude Helpfulness</div>
+          <div id="an-helpfulness-bars"></div>
+        </div>
+
+        <div class="an-section">
+          <div class="an-section-title">User Satisfaction</div>
+          <div id="an-satisfaction-bars"></div>
+        </div>
+
+      </div>
+
+      <div class="an-section">
+        <div class="an-section-title">Friction Categories</div>
+        <div id="an-friction-bars"></div>
       </div>
 
     </div><!-- /#an-content -->

@@ -241,6 +241,209 @@ function renderModelTable(modelAnalytics) {
   `;
 }
 
+// ── Daily cost chart ──────────────────────────────────────────────────────
+
+const MODEL_COLORS = [
+  { border: '#89b4fa', bg: '#89b4fa55' }, // blue   — sonnet
+  { border: '#cba6f7', bg: '#cba6f755' }, // purple — opus
+  { border: '#a6e3a1', bg: '#a6e3a155' }, // green  — haiku
+  { border: '#f9e2af', bg: '#f9e2af55' }, // yellow
+  { border: '#fab387', bg: '#fab38755' }, // orange
+];
+
+function renderDailyCostChart(dailyCosts) {
+  const legend = document.getElementById('daily-cost-legend');
+
+  if (!dailyCosts || !dailyCosts.length) {
+    document.getElementById('daily-cost-chart').parentElement.innerHTML =
+      '<div class="an-empty">No daily token data yet</div>';
+    legend.innerHTML = '';
+    return;
+  }
+
+  // Collect all model names across all days
+  const modelSet = new Set();
+  for (const d of dailyCosts) Object.keys(d.byModel).forEach(m => modelSet.add(m));
+  const models = [...modelSet];
+
+  const labels   = dailyCosts.map(d => d.date.slice(5)); // MM-DD
+  const datasets = models.map((model, i) => {
+    const color = MODEL_COLORS[i % MODEL_COLORS.length];
+    return {
+      label: shortModel(model),
+      data:  dailyCosts.map(d => d.byModel[model] ?? 0),
+      backgroundColor: color.bg,
+      borderColor:     color.border,
+      borderWidth: 1,
+      borderRadius: 2,
+      stack: 'cost',
+    };
+  });
+
+  new Chart(document.getElementById('daily-cost-chart').getContext('2d'), {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => `${items[0].label} (${dailyCosts[items[0].dataIndex]?.date ?? ''})`,
+            label: (item)  => ` ${item.dataset.label}: $${item.parsed.y.toFixed(4)}`,
+            footer: (items) => {
+              const total = items.reduce((s, i) => s + i.parsed.y, 0);
+              return `Total: $${total.toFixed(4)}`;
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          stacked: true,
+          grid:  { color: '#31324422' },
+          ticks: { color: '#585b70', font: { size: 10 }, maxTicksLimit: 12 },
+        },
+        y: {
+          stacked: true,
+          grid:  { color: '#31324444' },
+          ticks: { color: '#585b70', font: { size: 10 }, callback: v => `$${v.toFixed(3)}` },
+          beginAtZero: true,
+        },
+      },
+    },
+  });
+
+  legend.innerHTML = models.map((m, i) => {
+    const color = MODEL_COLORS[i % MODEL_COLORS.length];
+    return `<div class="an-legend-item">
+      <span class="an-legend-dot" style="background:${color.border}"></span>
+      <span>${escHtml(shortModel(m))}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── Code velocity chart ───────────────────────────────────────────────────
+
+function renderVelocityChart(dailyCodeVelocity) {
+  if (!dailyCodeVelocity || !dailyCodeVelocity.length) {
+    document.getElementById('velocity-chart').parentElement.innerHTML =
+      '<div class="an-empty">No code velocity data yet</div>';
+    return;
+  }
+
+  const labels  = dailyCodeVelocity.map(d => d.date.slice(5));
+  const added   = dailyCodeVelocity.map(d => d.linesAdded);
+  const removed = dailyCodeVelocity.map(d => d.linesRemoved);
+
+  new Chart(document.getElementById('velocity-chart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Lines added',
+          data: added,
+          backgroundColor: '#a6e3a155',
+          borderColor: '#a6e3a1',
+          borderWidth: 1,
+          borderRadius: 2,
+          stack: 'velocity',
+        },
+        {
+          label: 'Lines removed',
+          data: removed,
+          backgroundColor: '#f38ba855',
+          borderColor: '#f38ba8',
+          borderWidth: 1,
+          borderRadius: 2,
+          stack: 'velocity',
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => dailyCodeVelocity[items[0].dataIndex]?.date ?? '',
+            label: (item)  => ` ${item.dataset.label}: ${fmtNum(item.parsed.y)}`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          stacked: true,
+          grid:  { color: '#31324422' },
+          ticks: { color: '#585b70', font: { size: 10 }, maxTicksLimit: 12 },
+        },
+        y: {
+          stacked: true,
+          grid:  { color: '#31324444' },
+          ticks: { color: '#585b70', font: { size: 10 }, callback: v => fmtNum(v) },
+          beginAtZero: true,
+        },
+      },
+    },
+  });
+}
+
+// ── Quality signal bars ───────────────────────────────────────────────────
+
+const HELPFULNESS_ORDER = ['very_helpful', 'helpful', 'somewhat_helpful', 'not_helpful'];
+const HELPFULNESS_COLOR = {
+  very_helpful:      '#a6e3a1',
+  helpful:           '#89b4fa',
+  somewhat_helpful:  '#f9e2af',
+  not_helpful:       '#f38ba8',
+};
+
+const SATISFACTION_COLOR = {
+  likely_satisfied:   '#a6e3a1',
+  possibly_satisfied: '#89b4fa',
+  likely_dissatisfied:'#f38ba8',
+};
+
+function renderQualityBars(containerId, counts, colorMap, sortByKey) {
+  const container = document.getElementById(containerId);
+  let entries = Object.entries(counts ?? {}).filter(([, v]) => v > 0);
+
+  if (!entries.length) {
+    container.innerHTML = '<div class="an-empty">No data yet</div>';
+    return;
+  }
+
+  if (sortByKey) {
+    entries = entries.sort((a, b) => sortByKey.indexOf(a[0]) - sortByKey.indexOf(b[0]));
+    entries = [...entries.filter(([k]) => sortByKey.includes(k)),
+               ...entries.filter(([k]) => !sortByKey.includes(k))];
+  } else {
+    entries = entries.sort((a, b) => b[1] - a[1]);
+  }
+
+  const max   = Math.max(...entries.map(([, v]) => v));
+  const total = entries.reduce((s, [, v]) => s + v, 0);
+
+  container.innerHTML = entries.map(([key, count]) => {
+    const color = (colorMap && colorMap[key]) ? colorMap[key] : '#585b70';
+    const label = key.replace(/_/g, ' ');
+    return `
+      <div class="an-lang-bar-row">
+        <span class="an-lang-name">${escHtml(label)}</span>
+        <div class="an-lang-track">
+          <div class="an-lang-fill" style="width:${(count / max * 100).toFixed(1)}%;background:${color}"></div>
+        </div>
+        <span class="an-lang-count">${count} (${Math.round(count / total * 100)}%)</span>
+      </div>
+    `;
+  }).join('');
+}
+
 // ── Boot ──────────────────────────────────────────────────────────────────
 
 async function init() {
@@ -262,6 +465,11 @@ async function init() {
   renderOutcomeChart(data.outcomeCounts ?? {});
   renderLanguageBars(data.languageTotals ?? {});
   renderModelTable(data.modelAnalytics ?? {});
+  renderDailyCostChart(data.dailyCosts ?? []);
+  renderVelocityChart(data.dailyCodeVelocity ?? []);
+  renderQualityBars('an-helpfulness-bars',  data.helpfulnessCounts      ?? {}, HELPFULNESS_COLOR,  HELPFULNESS_ORDER);
+  renderQualityBars('an-satisfaction-bars', data.userSatisfactionCounts ?? {}, SATISFACTION_COLOR, null);
+  renderQualityBars('an-friction-bars',     data.frictionCounts         ?? {}, null,               null);
 }
 
 document.addEventListener('DOMContentLoaded', init);

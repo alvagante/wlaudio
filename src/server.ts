@@ -10,6 +10,8 @@ import { loadHistory, loadAllTodos, loadPlans, loadSettings, loadAllSessionMetas
 import type {
   WsMessage,
   InitialStateData,
+  DailyCost,
+  DailyCodeVelocity,
   SessionAddedData,
   TurnsUpdatedData,
   HistoryUpdatedData,
@@ -92,6 +94,59 @@ app.get('/api/v1/analytics', (_req, res) => {
     };
   }
 
+  // ── Daily cost from dailyModelTokens in stats-cache ─────────────────────
+  let rawDailyTokens: Array<{ date: string; tokensByModel: Record<string, number> }> = [];
+  try {
+    const statsRaw = JSON.parse(readFileSync(join(CLAUDE_DIR, 'stats-cache.json'), 'utf-8')) as Record<string, unknown>;
+    rawDailyTokens = (statsRaw['dailyModelTokens'] as typeof rawDailyTokens | undefined) ?? [];
+  } catch { /* missing or malformed — skip */ }
+
+  const dailyCosts: DailyCost[] = rawDailyTokens.slice(-60).map(day => {
+    const byModel: Record<string, number> = {};
+    let total = 0;
+    for (const [model, tokens] of Object.entries(day.tokensByModel ?? {})) {
+      const p = modelPricing(model);
+      // dailyModelTokens stores total tokens (input+output combined estimate); treat as output for cost approx
+      // Actually it's an aggregate — use sonnet pricing as fallback and just show relative scale
+      const cost = Math.round((Number(tokens) / 1e6 * p.outputPerM) * 10000) / 10000;
+      byModel[model] = cost;
+      total += cost;
+    }
+    return { date: day.date, byModel, total: Math.round(total * 10000) / 10000 };
+  });
+
+  // ── Daily code velocity from session-meta ─────────────────────────────────
+  const velocityMap = new Map<string, { linesAdded: number; linesRemoved: number }>();
+  for (const m of Object.values(allMetas)) {
+    if (!m.startTime) continue;
+    const date = m.startTime.slice(0, 10);
+    const cur  = velocityMap.get(date) ?? { linesAdded: 0, linesRemoved: 0 };
+    cur.linesAdded   += m.linesAdded   ?? 0;
+    cur.linesRemoved += m.linesRemoved ?? 0;
+    velocityMap.set(date, cur);
+  }
+  const dailyCodeVelocity: DailyCodeVelocity[] = [...velocityMap.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(-60)
+    .map(([date, v]) => ({ date, ...v }));
+
+  // ── Quality signals from facets ───────────────────────────────────────────
+  const helpfulnessCounts:      Record<string, number> = {};
+  const userSatisfactionCounts: Record<string, number> = {};
+  const frictionCounts:         Record<string, number> = {};
+
+  for (const f of Object.values(allFacets)) {
+    if (f.claudeHelpfulness) {
+      helpfulnessCounts[f.claudeHelpfulness] = (helpfulnessCounts[f.claudeHelpfulness] ?? 0) + 1;
+    }
+    for (const [k, v] of Object.entries(f.userSatisfactionCounts ?? {})) {
+      userSatisfactionCounts[k] = (userSatisfactionCounts[k] ?? 0) + v;
+    }
+    for (const [k, v] of Object.entries(f.frictionCounts ?? {})) {
+      frictionCounts[k] = (frictionCounts[k] ?? 0) + v;
+    }
+  }
+
   const analytics: AnalyticsData = {
     totalSessions:    globalStats?.totalSessions   ?? 0,
     totalMessages:    globalStats?.totalMessages   ?? 0,
@@ -102,6 +157,11 @@ app.get('/api/v1/analytics', (_req, res) => {
     languageTotals,
     sessionTypeCounts,
     modelAnalytics,
+    dailyCosts,
+    dailyCodeVelocity,
+    helpfulnessCounts,
+    userSatisfactionCounts,
+    frictionCounts,
   };
 
   res.json(analytics);

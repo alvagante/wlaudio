@@ -114,6 +114,18 @@ export interface ModelAnalytics {
   costUSD: number;
 }
 
+export interface DailyCost {
+  date: string;
+  byModel: Record<string, number>;
+  total: number;
+}
+
+export interface DailyCodeVelocity {
+  date: string;
+  linesAdded: number;
+  linesRemoved: number;
+}
+
 export interface AnalyticsData {
   totalSessions: number;
   totalMessages: number;
@@ -124,6 +136,11 @@ export interface AnalyticsData {
   languageTotals: Record<string, number>;
   sessionTypeCounts: Record<string, number>;
   modelAnalytics: Record<string, ModelAnalytics>;
+  dailyCosts: DailyCost[];
+  dailyCodeVelocity: DailyCodeVelocity[];
+  helpfulnessCounts: Record<string, number>;
+  userSatisfactionCounts: Record<string, number>;
+  frictionCounts: Record<string, number>;
 }
 
 // ── New data types ─────────────────────────────────────────────────────────
