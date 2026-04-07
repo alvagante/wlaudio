@@ -159,6 +159,10 @@ header {
   height: 160px;
 }
 
+.an-chart-wrap.an-chart-tall {
+  height: 200px;
+}
+
 .an-hour-labels {
   display: flex;
   justify-content: space-between;

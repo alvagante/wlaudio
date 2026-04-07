@@ -1,0 +1,325 @@
+/* ── Theme icon link (shared across all pages) ───────────────────────────── */
+.theme-icon-link {
+  color: inherit;
+  text-decoration: none;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+.theme-icon-link:hover { opacity: 1; }
+
+/* ── Theme overrides — loaded after page CSS, higher specificity via :root[data-theme] ── */
+
+/* ── Catppuccin Macchiato ─────────────────────────────────────────────────── */
+:root[data-theme="macchiato"] {
+  --bg:       #24273a;
+  --surface:  #1e2030;
+  --surface2: #181926;
+  --overlay:  #363a4f;
+  --border:   #494d64;
+  --text:     #cad3f5;
+  --subtext:  #a5adcb;
+  --dim:      #6e738d;
+  --blue:     #8aadf4;
+  --green:    #a6da95;
+  --yellow:   #eed49f;
+  --orange:   #f5a97f;
+  --red:      #ed8796;
+  --purple:   #c6a0f6;
+  --pink:     #f5bde6;
+  --teal:     #8bd5ca;
+  --sky:      #91d7e3;
+}
+
+/* ── Catppuccin Frappe ────────────────────────────────────────────────────── */
+:root[data-theme="frappe"] {
+  --bg:       #303446;
+  --surface:  #292c3c;
+  --surface2: #232634;
+  --overlay:  #414559;
+  --border:   #51576d;
+  --text:     #c6d0f5;
+  --subtext:  #a5adce;
+  --dim:      #737994;
+  --blue:     #8caaee;
+  --green:    #a6d189;
+  --yellow:   #e5c890;
+  --orange:   #ef9f76;
+  --red:      #e78284;
+  --purple:   #ca9ee6;
+  --pink:     #f4b8e4;
+  --teal:     #81c8be;
+  --sky:      #99d1db;
+}
+
+/* ── Catppuccin Latte (light) ─────────────────────────────────────────────── */
+:root[data-theme="latte"] {
+  --bg:       #eff1f5;
+  --surface:  #e6e9ef;
+  --surface2: #dce0e8;
+  --overlay:  #ccd0da;
+  --border:   #bcc0cc;
+  --text:     #4c4f69;
+  --subtext:  #5c5f77;
+  --dim:      #9ca0b0;
+  --blue:     #1e66f5;
+  --green:    #40a02b;
+  --yellow:   #df8e1d;
+  --orange:   #fe640b;
+  --red:      #d20f39;
+  --purple:   #8839ef;
+  --pink:     #ea76cb;
+  --teal:     #179299;
+  --sky:      #04a5e5;
+}
+
+/* ── Tokyo Night ─────────────────────────────────────────────────────────── */
+:root[data-theme="tokyo-night"] {
+  --bg:       #1a1b26;
+  --surface:  #16161e;
+  --surface2: #13131a;
+  --overlay:  #24283b;
+  --border:   #3b3f52;
+  --text:     #c0caf5;
+  --subtext:  #9aa5ce;
+  --dim:      #565f89;
+  --blue:     #7aa2f7;
+  --green:    #9ece6a;
+  --yellow:   #e0af68;
+  --orange:   #ff9e64;
+  --red:      #f7768e;
+  --purple:   #bb9af7;
+  --pink:     #ff007c;
+  --teal:     #73daca;
+  --sky:      #7dcfff;
+}
+
+/* ── Gruvbox Dark ────────────────────────────────────────────────────────── */
+:root[data-theme="gruvbox"] {
+  --bg:       #282828;
+  --surface:  #1d2021;
+  --surface2: #161616;
+  --overlay:  #3c3836;
+  --border:   #504945;
+  --text:     #ebdbb2;
+  --subtext:  #d5c4a1;
+  --dim:      #928374;
+  --blue:     #83a598;
+  --green:    #b8bb26;
+  --yellow:   #fabd2f;
+  --orange:   #fe8019;
+  --red:      #fb4934;
+  --purple:   #d3869b;
+  --pink:     #d3869b;
+  --teal:     #8ec07c;
+  --sky:      #83a598;
+}
+
+/* ── Nord ────────────────────────────────────────────────────────────────── */
+:root[data-theme="nord"] {
+  --bg:       #2e3440;
+  --surface:  #272c36;
+  --surface2: #222730;
+  --overlay:  #3b4252;
+  --border:   #434c5e;
+  --text:     #eceff4;
+  --subtext:  #d8dee9;
+  --dim:      #616e88;
+  --blue:     #81a1c1;
+  --green:    #a3be8c;
+  --yellow:   #ebcb8b;
+  --orange:   #d08770;
+  --red:      #bf616a;
+  --purple:   #b48ead;
+  --pink:     #b48ead;
+  --teal:     #88c0d0;
+  --sky:      #8fbcbb;
+}
+
+/* ── Dracula ─────────────────────────────────────────────────────────────── */
+:root[data-theme="dracula"] {
+  --bg:       #282a36;
+  --surface:  #21222c;
+  --surface2: #191a21;
+  --overlay:  #343746;
+  --border:   #45475a;
+  --text:     #f8f8f2;
+  --subtext:  #cfcfca;
+  --dim:      #6272a4;
+  --blue:     #6272a4;
+  --green:    #50fa7b;
+  --yellow:   #f1fa8c;
+  --orange:   #ffb86c;
+  --red:      #ff5555;
+  --purple:   #bd93f9;
+  --pink:     #ff79c6;
+  --teal:     #8be9fd;
+  --sky:      #8be9fd;
+}
+
+/* ── Solarized Dark ──────────────────────────────────────────────────────── */
+:root[data-theme="solarized"] {
+  --bg:       #002b36;
+  --surface:  #073642;
+  --surface2: #00212b;
+  --overlay:  #094050;
+  --border:   #0d5060;
+  --text:     #839496;
+  --subtext:  #657b83;
+  --dim:      #4a6570;
+  --blue:     #268bd2;
+  --green:    #859900;
+  --yellow:   #b58900;
+  --orange:   #cb4b16;
+  --red:      #dc322f;
+  --purple:   #6c71c4;
+  --pink:     #d33682;
+  --teal:     #2aa198;
+  --sky:      #268bd2;
+}
+
+/* ── GitHub Light ────────────────────────────────────────────────────────── */
+:root[data-theme="github-light"] {
+  --bg:       #ffffff;
+  --surface:  #f6f8fa;
+  --surface2: #eaeef2;
+  --overlay:  #d0d7de;
+  --border:   #d8dee4;
+  --text:     #1f2328;
+  --subtext:  #656d76;
+  --dim:      #8c959f;
+  --blue:     #0969da;
+  --green:    #1a7f37;
+  --yellow:   #9a6700;
+  --orange:   #bc4c00;
+  --red:      #cf222e;
+  --purple:   #8250df;
+  --pink:     #bf3989;
+  --teal:     #0969da;
+  --sky:      #218bff;
+}
+
+/* ── Solarized Light ─────────────────────────────────────────────────────── */
+:root[data-theme="solarized-light"] {
+  --bg:       #fdf6e3;
+  --surface:  #eee8d5;
+  --surface2: #e6dfca;
+  --overlay:  #d5ccb4;
+  --border:   #cfc9b4;
+  --text:     #657b83;
+  --subtext:  #586e75;
+  --dim:      #93a1a1;
+  --blue:     #268bd2;
+  --green:    #859900;
+  --yellow:   #b58900;
+  --orange:   #cb4b16;
+  --red:      #dc322f;
+  --purple:   #6c71c4;
+  --pink:     #d33682;
+  --teal:     #2aa198;
+  --sky:      #268bd2;
+}
+
+/* ── One Light ───────────────────────────────────────────────────────────── */
+:root[data-theme="one-light"] {
+  --bg:       #fafafa;
+  --surface:  #f0f0f0;
+  --surface2: #e5e5e5;
+  --overlay:  #d9d9d9;
+  --border:   #c8c8c8;
+  --text:     #383a42;
+  --subtext:  #696c77;
+  --dim:      #a0a1a7;
+  --blue:     #4078f2;
+  --green:    #50a14f;
+  --yellow:   #c18401;
+  --orange:   #d75f00;
+  --red:      #e45649;
+  --purple:   #a626a4;
+  --pink:     #ca1243;
+  --teal:     #0184bc;
+  --sky:      #4078f2;
+}
+
+/* ── Rosé Pine Dawn ──────────────────────────────────────────────────────── */
+:root[data-theme="rose-pine-dawn"] {
+  --bg:       #faf4ed;
+  --surface:  #fffaf3;
+  --surface2: #f2e9de;
+  --overlay:  #dfdad9;
+  --border:   #cecacd;
+  --text:     #575279;
+  --subtext:  #797593;
+  --dim:      #9893a5;
+  --blue:     #286983;
+  --green:    #56949f;
+  --yellow:   #ea9d34;
+  --orange:   #d7827e;
+  --red:      #b4637a;
+  --purple:   #907aa9;
+  --pink:     #d7827e;
+  --teal:     #56949f;
+  --sky:      #286983;
+}
+
+/* ── Everforest Light ────────────────────────────────────────────────────── */
+:root[data-theme="everforest-light"] {
+  --bg:       #fff9ef;
+  --surface:  #f4f0d9;
+  --surface2: #edeada;
+  --overlay:  #e0dcc7;
+  --border:   #d3c6aa;
+  --text:     #5c6a72;
+  --subtext:  #708090;
+  --dim:      #939f91;
+  --blue:     #3a94c5;
+  --green:    #8da101;
+  --yellow:   #dfa000;
+  --orange:   #f57d26;
+  --red:      #f85552;
+  --purple:   #df69ba;
+  --pink:     #df69ba;
+  --teal:     #35a77c;
+  --sky:      #3a94c5;
+}
+
+/* ── White & Black ───────────────────────────────────────────────────────── */
+:root[data-theme="flexoki-light"] {
+  --bg:       #ffffff;
+  --surface:  #f2f2f2;
+  --surface2: #e8e8e8;
+  --overlay:  #d4d4d4;
+  --border:   #b8b8b8;
+  --text:     #000000;
+  --subtext:  #333333;
+  --dim:      #888888;
+  --blue:     #000000;
+  --green:    #2a7a2a;
+  --yellow:   #555555;
+  --orange:   #555555;
+  --red:      #b83030;
+  --purple:   #000000;
+  --pink:     #555555;
+  --teal:     #555555;
+  --sky:      #000000;
+}
+
+/* ── Black & White ───────────────────────────────────────────────────────── */
+:root[data-theme="bw"] {
+  --bg:       #000000;
+  --surface:  #0d0d0d;
+  --surface2: #080808;
+  --overlay:  #1a1a1a;
+  --border:   #2e2e2e;
+  --text:     #ffffff;
+  --subtext:  #cccccc;
+  --dim:      #666666;
+  --blue:     #ffffff;
+  --green:    #ffffff;
+  --yellow:   #cccccc;
+  --orange:   #cccccc;
+  --red:      #aaaaaa;
+  --purple:   #ffffff;
+  --pink:     #cccccc;
+  --teal:     #cccccc;
+  --sky:      #ffffff;
+}

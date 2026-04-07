@@ -6,10 +6,12 @@ import { fileURLToPath } from 'url';
 import { readFileSync, existsSync } from 'fs';
 import { emitter, getAllSessionStates, startWatcher } from './watcher.js';
 import { loadGlobalStats, CLAUDE_DIR } from './parser.js';
-import { loadHistory, loadAllTodos, loadPlans, loadSettings, loadAllSessionMetas, loadAllSessionFacets } from './data.js';
+import { loadHistory, loadAllTodos, loadPlans, loadSettings, loadAllSessionMetas, loadOrphanSessionMetas, loadAllSessionFacets, loadConfigs } from './data.js';
 import type {
   WsMessage,
   InitialStateData,
+  DailyCost,
+  DailyCodeVelocity,
   SessionAddedData,
   TurnsUpdatedData,
   HistoryUpdatedData,
@@ -92,6 +94,59 @@ app.get('/api/v1/analytics', (_req, res) => {
     };
   }
 
+  // ── Daily cost from dailyModelTokens in stats-cache ─────────────────────
+  let rawDailyTokens: Array<{ date: string; tokensByModel: Record<string, number> }> = [];
+  try {
+    const statsRaw = JSON.parse(readFileSync(join(CLAUDE_DIR, 'stats-cache.json'), 'utf-8')) as Record<string, unknown>;
+    rawDailyTokens = (statsRaw['dailyModelTokens'] as typeof rawDailyTokens | undefined) ?? [];
+  } catch { /* missing or malformed — skip */ }
+
+  const dailyCosts: DailyCost[] = rawDailyTokens.slice(-60).map(day => {
+    const byModel: Record<string, number> = {};
+    let total = 0;
+    for (const [model, tokens] of Object.entries(day.tokensByModel ?? {})) {
+      const p = modelPricing(model);
+      // dailyModelTokens stores total tokens (input+output combined estimate); treat as output for cost approx
+      // Actually it's an aggregate — use sonnet pricing as fallback and just show relative scale
+      const cost = Math.round((Number(tokens) / 1e6 * p.outputPerM) * 10000) / 10000;
+      byModel[model] = cost;
+      total += cost;
+    }
+    return { date: day.date, byModel, total: Math.round(total * 10000) / 10000 };
+  });
+
+  // ── Daily code velocity from session-meta ─────────────────────────────────
+  const velocityMap = new Map<string, { linesAdded: number; linesRemoved: number }>();
+  for (const m of Object.values(allMetas)) {
+    if (!m.startTime) continue;
+    const date = m.startTime.slice(0, 10);
+    const cur  = velocityMap.get(date) ?? { linesAdded: 0, linesRemoved: 0 };
+    cur.linesAdded   += m.linesAdded   ?? 0;
+    cur.linesRemoved += m.linesRemoved ?? 0;
+    velocityMap.set(date, cur);
+  }
+  const dailyCodeVelocity: DailyCodeVelocity[] = [...velocityMap.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(-60)
+    .map(([date, v]) => ({ date, ...v }));
+
+  // ── Quality signals from facets ───────────────────────────────────────────
+  const helpfulnessCounts:      Record<string, number> = {};
+  const userSatisfactionCounts: Record<string, number> = {};
+  const frictionCounts:         Record<string, number> = {};
+
+  for (const f of Object.values(allFacets)) {
+    if (f.claudeHelpfulness) {
+      helpfulnessCounts[f.claudeHelpfulness] = (helpfulnessCounts[f.claudeHelpfulness] ?? 0) + 1;
+    }
+    for (const [k, v] of Object.entries(f.userSatisfactionCounts ?? {})) {
+      userSatisfactionCounts[k] = (userSatisfactionCounts[k] ?? 0) + v;
+    }
+    for (const [k, v] of Object.entries(f.frictionCounts ?? {})) {
+      frictionCounts[k] = (frictionCounts[k] ?? 0) + v;
+    }
+  }
+
   const analytics: AnalyticsData = {
     totalSessions:    globalStats?.totalSessions   ?? 0,
     totalMessages:    globalStats?.totalMessages   ?? 0,
@@ -102,9 +157,128 @@ app.get('/api/v1/analytics', (_req, res) => {
     languageTotals,
     sessionTypeCounts,
     modelAnalytics,
+    dailyCosts,
+    dailyCodeVelocity,
+    helpfulnessCounts,
+    userSatisfactionCounts,
+    frictionCounts,
   };
 
   res.json(analytics);
+});
+
+app.get('/api/v1/projects', (_req, res) => {
+  const allMetas  = loadAllSessionMetas();
+  const orphans   = loadOrphanSessionMetas(new Set(Object.keys(allMetas)));
+  Object.assign(allMetas, orphans);
+  const allFacets = loadAllSessionFacets();
+
+  // Group sessions by project path
+  const byProject = new Map<string, {
+    metas:  ReturnType<typeof loadAllSessionMetas>[string][];
+    facets: ReturnType<typeof loadAllSessionFacets>[string][];
+  }>();
+
+  for (const meta of Object.values(allMetas)) {
+    const key = meta.projectPath || '(unknown)';
+    if (!byProject.has(key)) byProject.set(key, { metas: [], facets: [] });
+    byProject.get(key)!.metas.push(meta);
+  }
+  for (const [sessionId, facet] of Object.entries(allFacets)) {
+    const meta = allMetas[sessionId];
+    if (!meta) continue;
+    const key = meta.projectPath || '(unknown)';
+    if (!byProject.has(key)) byProject.set(key, { metas: [], facets: [] });
+    byProject.get(key)!.facets.push(facet);
+  }
+
+  const projects = [...byProject.entries()].map(([projectPath, { metas, facets }]) => {
+    const sessions = metas
+      .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
+      .map(m => {
+        const f = allFacets[m.sessionId];
+        return {
+          sessionId:       m.sessionId,
+          startTime:       m.startTime,
+          durationMinutes: m.durationMinutes,
+          firstPrompt:     m.firstPrompt,
+          linesAdded:      m.linesAdded,
+          linesRemoved:    m.linesRemoved,
+          gitCommits:      m.gitCommits,
+          outcome:         f?.outcome       ?? '',
+          briefSummary:    f?.briefSummary  ?? '',
+        };
+      });
+
+    const languages:    Record<string, number> = {};
+    const toolCounts:   Record<string, number> = {};
+    const outcomeCounts:      Record<string, number> = {};
+    const goalCategories:     Record<string, number> = {};
+    const helpfulnessCounts:  Record<string, number> = {};
+    const sessionTypeCounts:  Record<string, number> = {};
+
+    let totalDurationMinutes = 0, totalLinesAdded = 0, totalLinesRemoved = 0;
+    let totalFilesModified = 0, totalGitCommits = 0, totalGitPushes = 0;
+    let totalToolCalls = 0, totalToolErrors = 0, totalUserInterruptions = 0;
+
+    for (const m of metas) {
+      totalDurationMinutes    += m.durationMinutes    ?? 0;
+      totalLinesAdded         += m.linesAdded         ?? 0;
+      totalLinesRemoved       += m.linesRemoved       ?? 0;
+      totalFilesModified      += m.filesModified      ?? 0;
+      totalGitCommits         += m.gitCommits         ?? 0;
+      totalGitPushes          += m.gitPushes          ?? 0;
+      totalToolErrors         += m.toolErrors         ?? 0;
+      totalUserInterruptions  += m.userInterruptions  ?? 0;
+      for (const [l, c] of Object.entries(m.languages  ?? {})) languages[l]  = (languages[l]  ?? 0) + c;
+      for (const [t, c] of Object.entries(m.toolCounts ?? {})) {
+        toolCounts[t] = (toolCounts[t] ?? 0) + c;
+        totalToolCalls += c;
+      }
+    }
+
+    for (const f of facets) {
+      if (f.outcome)          outcomeCounts[f.outcome]         = (outcomeCounts[f.outcome]         ?? 0) + 1;
+      if (f.claudeHelpfulness) helpfulnessCounts[f.claudeHelpfulness] = (helpfulnessCounts[f.claudeHelpfulness] ?? 0) + 1;
+      if (f.sessionType)      sessionTypeCounts[f.sessionType] = (sessionTypeCounts[f.sessionType] ?? 0) + 1;
+      for (const [g, c] of Object.entries(f.goalCategories ?? {})) goalCategories[g] = (goalCategories[g] ?? 0) + c;
+    }
+
+    const sorted      = metas.map(m => m.startTime).sort();
+    const lastActive  = sorted[sorted.length - 1] ?? '';
+    const firstActive = sorted[0] ?? '';
+
+    return {
+      projectPath,
+      projectName: projectPath.split('/').filter(Boolean).pop() ?? projectPath,
+      sessionCount: metas.length,
+      lastActive,
+      firstActive,
+      totalDurationMinutes,
+      avgDurationMinutes: metas.length ? Math.round(totalDurationMinutes / metas.length) : 0,
+      totalLinesAdded,
+      totalLinesRemoved,
+      totalFilesModified,
+      totalGitCommits,
+      totalGitPushes,
+      totalToolCalls,
+      totalToolErrors,
+      totalUserInterruptions,
+      languages,
+      toolCounts,
+      outcomeCounts,
+      goalCategories,
+      helpfulnessCounts,
+      sessionTypeCounts,
+      sessions,
+    };
+  }).sort((a, b) => new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime());
+
+  res.json(projects);
+});
+
+app.get('/api/v1/configs', (_req, res) => {
+  res.json(loadConfigs());
 });
 
 app.get('/api/v1/session-files', (req, res) => {

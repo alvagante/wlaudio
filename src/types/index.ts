@@ -114,6 +114,18 @@ export interface ModelAnalytics {
   costUSD: number;
 }
 
+export interface DailyCost {
+  date: string;
+  byModel: Record<string, number>;
+  total: number;
+}
+
+export interface DailyCodeVelocity {
+  date: string;
+  linesAdded: number;
+  linesRemoved: number;
+}
+
 export interface AnalyticsData {
   totalSessions: number;
   totalMessages: number;
@@ -124,6 +136,11 @@ export interface AnalyticsData {
   languageTotals: Record<string, number>;
   sessionTypeCounts: Record<string, number>;
   modelAnalytics: Record<string, ModelAnalytics>;
+  dailyCosts: DailyCost[];
+  dailyCodeVelocity: DailyCodeVelocity[];
+  helpfulnessCounts: Record<string, number>;
+  userSatisfactionCounts: Record<string, number>;
+  frictionCounts: Record<string, number>;
 }
 
 // ── New data types ─────────────────────────────────────────────────────────
@@ -151,6 +168,47 @@ export interface ClaudeSettings {
   hookTypes: Record<string, number>;
   allowedTools: string[];
   deniedTools: string[];
+}
+
+// ── Configs page types ─────────────────────────────────────────────────────
+
+export interface HookDef {
+  type: string;
+  command: string;
+}
+
+export interface HookEntry {
+  matcher: string;
+  hooks: HookDef[];
+}
+
+export interface SettingsConfig {
+  hooks: Record<string, HookEntry[]>;
+  allow: string[];
+  deny: string[];
+  mcpServers: Record<string, unknown>;
+}
+
+export interface ProjectConfig {
+  projectPath: string;
+  projectName: string;
+  settings: SettingsConfig | null;
+  claudeMd: string | null;
+  localClaudeMd: string | null;
+}
+
+export interface PluginEntry {
+  plugin: string;
+  added_at: string;
+  reason: string;
+  text: string;
+}
+
+export interface ConfigsData {
+  global: SettingsConfig | null;
+  globalClaudeMd: string | null;
+  projects: ProjectConfig[];
+  plugins: PluginEntry[];
 }
 
 // ── WebSocket protocol ─────────────────────────────────────────────────────
