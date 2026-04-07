@@ -107,6 +107,114 @@ app.get('/api/v1/analytics', (_req, res) => {
   res.json(analytics);
 });
 
+app.get('/api/v1/projects', (_req, res) => {
+  const allMetas  = loadAllSessionMetas();
+  const allFacets = loadAllSessionFacets();
+
+  // Group sessions by project path
+  const byProject = new Map<string, {
+    metas:  ReturnType<typeof loadAllSessionMetas>[string][];
+    facets: ReturnType<typeof loadAllSessionFacets>[string][];
+  }>();
+
+  for (const meta of Object.values(allMetas)) {
+    const key = meta.projectPath || '(unknown)';
+    if (!byProject.has(key)) byProject.set(key, { metas: [], facets: [] });
+    byProject.get(key)!.metas.push(meta);
+  }
+  for (const [sessionId, facet] of Object.entries(allFacets)) {
+    const meta = allMetas[sessionId];
+    if (!meta) continue;
+    const key = meta.projectPath || '(unknown)';
+    if (!byProject.has(key)) byProject.set(key, { metas: [], facets: [] });
+    byProject.get(key)!.facets.push(facet);
+  }
+
+  const projects = [...byProject.entries()].map(([projectPath, { metas, facets }]) => {
+    const sessions = metas
+      .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
+      .map(m => {
+        const f = allFacets[m.sessionId];
+        return {
+          sessionId:       m.sessionId,
+          startTime:       m.startTime,
+          durationMinutes: m.durationMinutes,
+          firstPrompt:     m.firstPrompt,
+          linesAdded:      m.linesAdded,
+          linesRemoved:    m.linesRemoved,
+          gitCommits:      m.gitCommits,
+          outcome:         f?.outcome       ?? '',
+          briefSummary:    f?.briefSummary  ?? '',
+        };
+      });
+
+    const languages:    Record<string, number> = {};
+    const toolCounts:   Record<string, number> = {};
+    const outcomeCounts:      Record<string, number> = {};
+    const goalCategories:     Record<string, number> = {};
+    const helpfulnessCounts:  Record<string, number> = {};
+    const sessionTypeCounts:  Record<string, number> = {};
+
+    let totalDurationMinutes = 0, totalLinesAdded = 0, totalLinesRemoved = 0;
+    let totalFilesModified = 0, totalGitCommits = 0, totalGitPushes = 0;
+    let totalToolCalls = 0, totalToolErrors = 0, totalUserInterruptions = 0;
+
+    for (const m of metas) {
+      totalDurationMinutes    += m.durationMinutes    ?? 0;
+      totalLinesAdded         += m.linesAdded         ?? 0;
+      totalLinesRemoved       += m.linesRemoved       ?? 0;
+      totalFilesModified      += m.filesModified      ?? 0;
+      totalGitCommits         += m.gitCommits         ?? 0;
+      totalGitPushes          += m.gitPushes          ?? 0;
+      totalToolErrors         += m.toolErrors         ?? 0;
+      totalUserInterruptions  += m.userInterruptions  ?? 0;
+      for (const [l, c] of Object.entries(m.languages  ?? {})) languages[l]  = (languages[l]  ?? 0) + c;
+      for (const [t, c] of Object.entries(m.toolCounts ?? {})) {
+        toolCounts[t] = (toolCounts[t] ?? 0) + c;
+        totalToolCalls += c;
+      }
+    }
+
+    for (const f of facets) {
+      if (f.outcome)          outcomeCounts[f.outcome]         = (outcomeCounts[f.outcome]         ?? 0) + 1;
+      if (f.claudeHelpfulness) helpfulnessCounts[f.claudeHelpfulness] = (helpfulnessCounts[f.claudeHelpfulness] ?? 0) + 1;
+      if (f.sessionType)      sessionTypeCounts[f.sessionType] = (sessionTypeCounts[f.sessionType] ?? 0) + 1;
+      for (const [g, c] of Object.entries(f.goalCategories ?? {})) goalCategories[g] = (goalCategories[g] ?? 0) + c;
+    }
+
+    const sorted      = metas.map(m => m.startTime).sort();
+    const lastActive  = sorted[sorted.length - 1] ?? '';
+    const firstActive = sorted[0] ?? '';
+
+    return {
+      projectPath,
+      projectName: projectPath.split('/').filter(Boolean).pop() ?? projectPath,
+      sessionCount: metas.length,
+      lastActive,
+      firstActive,
+      totalDurationMinutes,
+      avgDurationMinutes: metas.length ? Math.round(totalDurationMinutes / metas.length) : 0,
+      totalLinesAdded,
+      totalLinesRemoved,
+      totalFilesModified,
+      totalGitCommits,
+      totalGitPushes,
+      totalToolCalls,
+      totalToolErrors,
+      totalUserInterruptions,
+      languages,
+      toolCounts,
+      outcomeCounts,
+      goalCategories,
+      helpfulnessCounts,
+      sessionTypeCounts,
+      sessions,
+    };
+  }).sort((a, b) => new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime());
+
+  res.json(projects);
+});
+
 app.get('/api/v1/session-files', (req, res) => {
   const cwd = String(req.query['cwd'] ?? '').trim();
   if (!cwd) { res.status(400).json({ error: 'cwd required' }); return; }
