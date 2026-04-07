@@ -302,3 +302,24 @@
   --teal:     #3aa99f;
   --sky:      #205ea6;
 }
+
+/* ── Black & White ───────────────────────────────────────────────────────── */
+:root[data-theme="bw"] {
+  --bg:       #000000;
+  --surface:  #0d0d0d;
+  --surface2: #080808;
+  --overlay:  #1a1a1a;
+  --border:   #2e2e2e;
+  --text:     #ffffff;
+  --subtext:  #cccccc;
+  --dim:      #666666;
+  --blue:     #ffffff;
+  --green:    #ffffff;
+  --yellow:   #cccccc;
+  --orange:   #cccccc;
+  --red:      #aaaaaa;
+  --purple:   #ffffff;
+  --pink:     #cccccc;
+  --teal:     #cccccc;
+  --sky:      #ffffff;
+}
