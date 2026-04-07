@@ -170,6 +170,47 @@ export interface ClaudeSettings {
   deniedTools: string[];
 }
 
+// ── Configs page types ─────────────────────────────────────────────────────
+
+export interface HookDef {
+  type: string;
+  command: string;
+}
+
+export interface HookEntry {
+  matcher: string;
+  hooks: HookDef[];
+}
+
+export interface SettingsConfig {
+  hooks: Record<string, HookEntry[]>;
+  allow: string[];
+  deny: string[];
+  mcpServers: Record<string, unknown>;
+}
+
+export interface ProjectConfig {
+  projectPath: string;
+  projectName: string;
+  settings: SettingsConfig | null;
+  claudeMd: string | null;
+  localClaudeMd: string | null;
+}
+
+export interface PluginEntry {
+  plugin: string;
+  added_at: string;
+  reason: string;
+  text: string;
+}
+
+export interface ConfigsData {
+  global: SettingsConfig | null;
+  globalClaudeMd: string | null;
+  projects: ProjectConfig[];
+  plugins: PluginEntry[];
+}
+
 // ── WebSocket protocol ─────────────────────────────────────────────────────
 
 export type WsEventType =

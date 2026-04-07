@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wlaudio — Configs</title>
+  <link rel="stylesheet" href="configs.css" />
+</head>
+<body>
+
+  <header>
+    <div class="logo">⬡ WLAUDIO, the CLAUDE MONITOR v0.3.0</div>
+    <nav class="header-nav">
+      <a href="/" class="nav-link">DASHBOARD</a>
+      <a href="/analytics.html" class="nav-link">ANALYTICS</a>
+      <a href="/projects.html" class="nav-link">PROJECTS</a>
+      <a href="/configs.html" class="nav-link active">CONFIGS</a>
+    </nav>
+  </header>
+
+  <main class="cfg-main">
+
+    <div id="cfg-loading" class="cfg-loading">LOADING…</div>
+
+    <div id="cfg-content" class="hidden">
+
+      <!-- ── Global config ──────────────────────────────────────────── -->
+      <div class="cfg-page-title">GLOBAL CONFIG <span class="cfg-path">~/.claude/</span></div>
+
+      <!-- Hooks -->
+      <div class="cfg-section">
+        <div class="cfg-section-title">Hooks <span id="cfg-global-hook-count" class="cfg-badge"></span></div>
+        <div id="cfg-global-hooks"></div>
+      </div>
+
+      <!-- Permissions -->
+      <div class="cfg-two-col">
+        <div class="cfg-section">
+          <div class="cfg-section-title">Allowed Tools <span id="cfg-allow-count" class="cfg-badge"></span></div>
+          <div id="cfg-allow-list" class="cfg-rule-list"></div>
+        </div>
+        <div class="cfg-section">
+          <div class="cfg-section-title">Denied Tools <span id="cfg-deny-count" class="cfg-badge"></span></div>
+          <div id="cfg-deny-list" class="cfg-rule-list"></div>
+        </div>
+      </div>
+
+      <!-- MCP Servers -->
+      <div class="cfg-section" id="cfg-mcp-section">
+        <div class="cfg-section-title">MCP Servers <span id="cfg-mcp-count" class="cfg-badge"></span></div>
+        <div id="cfg-mcp-list"></div>
+      </div>
+
+      <!-- Plugins -->
+      <div class="cfg-section" id="cfg-plugins-section">
+        <div class="cfg-section-title">Plugins <span id="cfg-plugin-count" class="cfg-badge"></span></div>
+        <div id="cfg-plugins-list"></div>
+      </div>
+
+      <!-- Global CLAUDE.md -->
+      <div class="cfg-section" id="cfg-global-md-section">
+        <div class="cfg-section-title cfg-expandable" data-target="cfg-global-md-body">
+          <span>Global CLAUDE.md</span>
+          <span class="cfg-expand-icon">▶</span>
+        </div>
+        <div id="cfg-global-md-body" class="hidden">
+          <pre id="cfg-global-md" class="cfg-md-pre"></pre>
+        </div>
+      </div>
+
+      <!-- ── Per-project configs ─────────────────────────────────────── -->
+      <div class="cfg-page-title" style="margin-top:1.5rem">PROJECT CONFIGS <span id="cfg-proj-count" class="cfg-badge"></span></div>
+      <div id="cfg-projects"></div>
+
+    </div><!-- /#cfg-content -->
+
+  </main>
+
+  <script src="configs.js"></script>
+
+</body>
+</html>

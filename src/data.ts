@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { CLAUDE_DIR } from './parser.js';
-import type { HistoryEntry, TodoItem, Plan, ClaudeSettings, SessionMeta, SessionFacets } from './types/index.js';
+import type { HistoryEntry, TodoItem, Plan, ClaudeSettings, SessionMeta, SessionFacets, SettingsConfig, ProjectConfig, PluginEntry, ConfigsData, HookEntry } from './types/index.js';
 
 export function loadHistory(): HistoryEntry[] {
   const path = join(CLAUDE_DIR, 'history.jsonl');
@@ -135,6 +135,87 @@ export function loadAllSessionMetas(): Record<string, SessionMeta> {
     }
   } catch { /* skip if dir missing */ }
   return result;
+}
+
+// ── Configs ────────────────────────────────────────────────────────────────
+
+function parseSettingsFile(path: string): SettingsConfig | null {
+  if (!existsSync(path)) return null;
+  try {
+    const raw = JSON.parse(readFileSync(path, 'utf-8')) as Record<string, unknown>;
+    const hooksRaw = (raw['hooks'] as Record<string, unknown[]> | undefined) ?? {};
+    const perms    = (raw['permissions'] as Record<string, string[]> | undefined) ?? {};
+
+    const hooks: Record<string, HookEntry[]> = {};
+    for (const [event, entries] of Object.entries(hooksRaw)) {
+      hooks[event] = (entries as Record<string, unknown>[]).map(e => ({
+        matcher: String(e['matcher'] ?? '*'),
+        hooks: ((e['hooks'] as Record<string, unknown>[] | undefined) ?? []).map(h => ({
+          type:    String(h['type']    ?? 'command'),
+          command: String(h['command'] ?? ''),
+        })),
+      }));
+    }
+
+    const mcpServers = (raw['mcpServers'] as Record<string, unknown> | undefined) ?? {};
+
+    return {
+      hooks,
+      allow: perms['allow'] ?? [],
+      deny:  perms['deny']  ?? [],
+      mcpServers,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function readFileSafe(path: string): string | null {
+  if (!existsSync(path)) return null;
+  try { return readFileSync(path, 'utf-8'); } catch { return null; }
+}
+
+export function loadConfigs(): ConfigsData {
+  const global         = parseSettingsFile(join(CLAUDE_DIR, 'settings.json'));
+  const globalClaudeMd = readFileSafe(join(CLAUDE_DIR, 'CLAUDE.md'));
+
+  // Plugins
+  let plugins: PluginEntry[] = [];
+  try {
+    const raw = JSON.parse(readFileSync(join(CLAUDE_DIR, 'plugins', 'blocklist.json'), 'utf-8')) as Record<string, unknown>;
+    plugins = ((raw['plugins'] as PluginEntry[] | undefined) ?? []);
+  } catch { /* no plugins file */ }
+
+  // Per-project configs: derive unique project paths from session-meta
+  const metaDir = join(CLAUDE_DIR, 'usage-data', 'session-meta');
+  const projectPaths = new Set<string>();
+  if (existsSync(metaDir)) {
+    for (const f of readdirSync(metaDir).filter(f => f.endsWith('.json'))) {
+      try {
+        const m = JSON.parse(readFileSync(join(metaDir, f), 'utf-8')) as Record<string, unknown>;
+        const p = String(m['project_path'] ?? '').trim();
+        if (p) projectPaths.add(p);
+      } catch { /* skip */ }
+    }
+  }
+
+  const projects: ProjectConfig[] = [...projectPaths]
+    .sort()
+    .map(projectPath => {
+      const projectName = projectPath.split('/').filter(Boolean).pop() ?? projectPath;
+      return {
+        projectPath,
+        projectName,
+        settings:      parseSettingsFile(join(projectPath, '.claude', 'settings.json')),
+        claudeMd:      readFileSafe(join(projectPath, 'CLAUDE.md'))
+                    ?? readFileSafe(join(projectPath, '.claude', 'CLAUDE.md')),
+        localClaudeMd: readFileSafe(join(projectPath, 'CLAUDE.local.md'))
+                    ?? readFileSafe(join(projectPath, '.claude', 'CLAUDE.local.md')),
+      };
+    })
+    .filter(p => p.settings !== null || p.claudeMd !== null);
+
+  return { global, globalClaudeMd, projects, plugins };
 }
 
 export function loadAllSessionFacets(): Record<string, SessionFacets> {

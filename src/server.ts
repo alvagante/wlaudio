@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 import { readFileSync, existsSync } from 'fs';
 import { emitter, getAllSessionStates, startWatcher } from './watcher.js';
 import { loadGlobalStats, CLAUDE_DIR } from './parser.js';
-import { loadHistory, loadAllTodos, loadPlans, loadSettings, loadAllSessionMetas, loadAllSessionFacets } from './data.js';
+import { loadHistory, loadAllTodos, loadPlans, loadSettings, loadAllSessionMetas, loadAllSessionFacets, loadConfigs } from './data.js';
 import type {
   WsMessage,
   InitialStateData,
@@ -273,6 +273,10 @@ app.get('/api/v1/projects', (_req, res) => {
   }).sort((a, b) => new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime());
 
   res.json(projects);
+});
+
+app.get('/api/v1/configs', (_req, res) => {
+  res.json(loadConfigs());
 });
 
 app.get('/api/v1/session-files', (req, res) => {
