@@ -126,6 +126,8 @@ function renderDetail(p) {
   document.getElementById('pr-path').textContent        = p.projectPath;
   document.getElementById('pr-last-active').innerHTML   =
     `Last active: ${timeAgo(p.lastActive)}<br><span style="color:var(--dim)">${fmtDate(p.lastActive)}</span>`;
+  const launchBtn = document.getElementById('pr-launch-btn');
+  launchBtn.href = `/terminal.html?cwd=${encodeURIComponent(p.projectPath)}`;
 
   // Cards
   document.getElementById('pr-sessions').textContent    = fmtNum(p.sessionCount);

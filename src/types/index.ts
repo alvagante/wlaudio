@@ -223,11 +223,58 @@ export type WsEventType =
   | 'history_updated'
   | 'todos_updated'
   | 'plans_updated'
-  | 'meta_updated';
+  | 'meta_updated'
+  | 'terminal:output'
+  | 'terminal:exit';
+
+export type WsClientEventType =
+  | 'terminal:create'
+  | 'terminal:input'
+  | 'terminal:resize'
+  | 'terminal:close';
 
 export interface WsMessage<T = unknown> {
   type: WsEventType;
   data: T;
+}
+
+export interface WsClientMessage<T = unknown> {
+  type: WsClientEventType;
+  data: T;
+}
+
+// ── Terminal types ─────────────────────────────────────────────────────────
+
+export interface TerminalCreatePayload {
+  terminalId: string;
+  cwd: string;
+  cols: number;
+  rows: number;
+}
+
+export interface TerminalInputPayload {
+  terminalId: string;
+  data: string;
+}
+
+export interface TerminalResizePayload {
+  terminalId: string;
+  cols: number;
+  rows: number;
+}
+
+export interface TerminalClosePayload {
+  terminalId: string;
+}
+
+export interface TerminalOutputData {
+  terminalId: string;
+  data: string;
+}
+
+export interface TerminalExitData {
+  terminalId: string;
+  exitCode: number;
 }
 
 export interface InitialStateData {

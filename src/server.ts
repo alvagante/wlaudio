@@ -7,8 +7,16 @@ import { readFileSync, existsSync } from 'fs';
 import { emitter, getAllSessionStates, startWatcher } from './watcher.js';
 import { loadGlobalStats, CLAUDE_DIR } from './parser.js';
 import { loadHistory, loadAllTodos, loadPlans, loadSettings, loadAllSessionMetas, loadOrphanSessionMetas, loadAllSessionFacets, loadConfigs } from './data.js';
+import { terminalManager } from './terminal.js';
 import type {
   WsMessage,
+  WsClientMessage,
+  TerminalCreatePayload,
+  TerminalInputPayload,
+  TerminalResizePayload,
+  TerminalClosePayload,
+  TerminalOutputData,
+  TerminalExitData,
   InitialStateData,
   DailyCost,
   DailyCodeVelocity,
@@ -312,18 +320,96 @@ app.get('/api/v1/session-files', (req, res) => {
   res.json(files);
 });
 
+// ── Terminal REST endpoints ────────────────────────────────────────────────
+
+app.get('/api/v1/terminals', (_req, res) => {
+  res.json(terminalManager.list());
+});
+
 // ── WebSocket server ───────────────────────────────────────────────────────
 
 const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 const clients = new Set<WebSocket>();
 
+// Map terminalId → Set of WebSocket clients subscribed to that terminal
+const terminalClients = new Map<string, Set<WebSocket>>();
+
 wss.on('connection', (ws) => {
   clients.add(ws);
-  ws.on('close',   () => clients.delete(ws));
+  ws.on('close',   () => {
+    clients.delete(ws);
+    // Remove ws from all terminal subscriptions
+    for (const subs of terminalClients.values()) subs.delete(ws);
+  });
   ws.on('error',   () => clients.delete(ws));
+
+  ws.on('message', (raw) => {
+    let msg: WsClientMessage;
+    try { msg = JSON.parse(raw.toString()) as WsClientMessage; }
+    catch { return; }
+
+    switch (msg.type) {
+      case 'terminal:create': {
+        const p = msg.data as TerminalCreatePayload;
+        if (!terminalClients.has(p.terminalId)) terminalClients.set(p.terminalId, new Set());
+        terminalClients.get(p.terminalId)!.add(ws);
+        try {
+          terminalManager.create(p.terminalId, p.cwd, p.cols, p.rows);
+        } catch (err) {
+          const msg2 = err instanceof Error ? err.message : String(err);
+          const errPayload = { terminalId: p.terminalId, data: `\r\n\x1b[31m[wlaudio] Spawn error: ${msg2}\x1b[0m\r\n` };
+          if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'terminal:output', data: errPayload }));
+        }
+        break;
+      }
+      case 'terminal:input': {
+        const p = msg.data as TerminalInputPayload;
+        terminalManager.write(p.terminalId, p.data);
+        break;
+      }
+      case 'terminal:resize': {
+        const p = msg.data as TerminalResizePayload;
+        terminalManager.resize(p.terminalId, p.cols, p.rows);
+        break;
+      }
+      case 'terminal:close': {
+        const p = msg.data as TerminalClosePayload;
+        terminalManager.kill(p.terminalId);
+        terminalClients.delete(p.terminalId);
+        break;
+      }
+    }
+  });
 
   // Send full current state on connect
   send(ws, { type: 'initial_state', data: buildInitialState() });
+});
+
+// ── Terminal events → WebSocket ────────────────────────────────────────────
+
+terminalManager.on('output', (terminalId: string, data: string) => {
+  const payload: TerminalOutputData = { terminalId, data };
+  const msg: WsMessage = { type: 'terminal:output', data: payload };
+  const json = JSON.stringify(msg);
+  const subs = terminalClients.get(terminalId);
+  if (subs) {
+    for (const ws of subs) {
+      if (ws.readyState === WebSocket.OPEN) ws.send(json);
+    }
+  }
+});
+
+terminalManager.on('exit', (terminalId: string, exitCode: number) => {
+  const payload: TerminalExitData = { terminalId, exitCode };
+  const msg: WsMessage = { type: 'terminal:exit', data: payload };
+  const json = JSON.stringify(msg);
+  const subs = terminalClients.get(terminalId);
+  if (subs) {
+    for (const ws of subs) {
+      if (ws.readyState === WebSocket.OPEN) ws.send(json);
+    }
+    terminalClients.delete(terminalId);
+  }
 });
 
 // ── Watcher → WebSocket bridge ─────────────────────────────────────────────
@@ -416,6 +502,9 @@ function send(ws: WebSocket, msg: WsMessage): void {
 
 export function startServer(): void {
   startWatcher();
+
+  process.on('SIGTERM', () => { terminalManager.killAll(); process.exit(0); });
+  process.on('SIGINT',  () => { terminalManager.killAll(); process.exit(0); });
 
   httpServer.listen(PORT, () => {
     console.log(`\n  ⬡  Wlaudio, the Claude Monitor\n`);
