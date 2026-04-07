@@ -282,25 +282,25 @@
   --sky:      #3a94c5;
 }
 
-/* ── Flexoki Light ───────────────────────────────────────────────────────── */
+/* ── White & Black ───────────────────────────────────────────────────────── */
 :root[data-theme="flexoki-light"] {
-  --bg:       #fffcf0;
-  --surface:  #f2f0e5;
-  --surface2: #e6e4d9;
-  --overlay:  #dad8ce;
-  --border:   #cecdc3;
-  --text:     #100f0f;
-  --subtext:  #403e3c;
-  --dim:      #878580;
-  --blue:     #205ea6;
-  --green:    #3aa99f;
-  --yellow:   #ad8301;
-  --orange:   #bc5215;
-  --red:      #af3029;
-  --purple:   #5e409d;
-  --pink:     #ce5d97;
-  --teal:     #3aa99f;
-  --sky:      #205ea6;
+  --bg:       #ffffff;
+  --surface:  #f2f2f2;
+  --surface2: #e8e8e8;
+  --overlay:  #d4d4d4;
+  --border:   #b8b8b8;
+  --text:     #000000;
+  --subtext:  #333333;
+  --dim:      #888888;
+  --blue:     #000000;
+  --green:    #000000;
+  --yellow:   #555555;
+  --orange:   #555555;
+  --red:      #333333;
+  --purple:   #000000;
+  --pink:     #555555;
+  --teal:     #555555;
+  --sky:      #000000;
 }
 
 /* ── Black & White ───────────────────────────────────────────────────────── */
