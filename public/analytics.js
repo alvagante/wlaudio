@@ -309,7 +309,14 @@ function renderDailyCostChart(dailyCosts) {
         y: {
           stacked: true,
           grid:  { color: '#31324444' },
-          ticks: { color: '#585b70', font: { size: 10 }, callback: v => `$${v.toFixed(3)}` },
+          ticks: {
+            color: '#585b70',
+            font: { size: 10 },
+            callback: (v) => {
+              const num = Number(v);
+              return Number.isNaN(num) ? `$${String(v)}` : `$${num.toFixed(3)}`;
+            },
+          },
           beginAtZero: true,
         },
       },

@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync, existsSync } from 'fs';
+import { readFileSync, readdirSync, existsSync, openSync, readSync, closeSync } from 'fs';
 import { join } from 'path';
 import { CLAUDE_DIR } from './parser.js';
 import type { HistoryEntry, TodoItem, Plan, ClaudeSettings, SessionMeta, SessionFacets, SettingsConfig, ProjectConfig, PluginEntry, ConfigsData, HookEntry } from './types/index.js';
@@ -155,13 +155,18 @@ export function loadOrphanSessionMetas(knownIds: Set<string>, claudeDir = CLAUDE
 
       for (const jsonlFile of jsonlFiles) {
         const sessionId = jsonlFile.replace(/\.jsonl$/, '');
+        if (!sessionId) continue;
         if (knownIds.has(sessionId)) continue;
 
-        // Read first few lines to find cwd
+        // Read only the first 4 KB to find cwd — avoids loading full file into memory
         let projectPath = '';
         try {
-          const content = readFileSync(join(projectDir, jsonlFile), 'utf-8');
-          for (const line of content.split('\n').slice(0, 20)) {
+          const fd = openSync(join(projectDir, jsonlFile), 'r');
+          const buf = Buffer.alloc(4096);
+          const bytesRead = readSync(fd, buf, 0, 4096, 0);
+          closeSync(fd);
+          const chunk = buf.subarray(0, bytesRead).toString('utf-8');
+          for (const line of chunk.split('\n').slice(0, 20)) {
             if (!line.trim()) continue;
             try {
               const rec = JSON.parse(line) as Record<string, unknown>;
@@ -280,7 +285,7 @@ export function loadConfigs(): ConfigsData {
                     ?? readFileSafe(join(projectPath, '.claude', 'CLAUDE.local.md')),
       };
     })
-    .filter(p => p.settings !== null || p.claudeMd !== null);
+    .filter(p => p.settings !== null || p.claudeMd !== null || p.localClaudeMd !== null);
 
   return { global, globalClaudeMd, projects, plugins };
 }
