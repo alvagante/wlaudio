@@ -176,3 +176,129 @@
   --teal:     #2aa198;
   --sky:      #268bd2;
 }
+
+/* ── GitHub Light ────────────────────────────────────────────────────────── */
+:root[data-theme="github-light"] {
+  --bg:       #ffffff;
+  --surface:  #f6f8fa;
+  --surface2: #eaeef2;
+  --overlay:  #d0d7de;
+  --border:   #d8dee4;
+  --text:     #1f2328;
+  --subtext:  #656d76;
+  --dim:      #8c959f;
+  --blue:     #0969da;
+  --green:    #1a7f37;
+  --yellow:   #9a6700;
+  --orange:   #bc4c00;
+  --red:      #cf222e;
+  --purple:   #8250df;
+  --pink:     #bf3989;
+  --teal:     #0969da;
+  --sky:      #218bff;
+}
+
+/* ── Solarized Light ─────────────────────────────────────────────────────── */
+:root[data-theme="solarized-light"] {
+  --bg:       #fdf6e3;
+  --surface:  #eee8d5;
+  --surface2: #e6dfca;
+  --overlay:  #d5ccb4;
+  --border:   #cfc9b4;
+  --text:     #657b83;
+  --subtext:  #586e75;
+  --dim:      #93a1a1;
+  --blue:     #268bd2;
+  --green:    #859900;
+  --yellow:   #b58900;
+  --orange:   #cb4b16;
+  --red:      #dc322f;
+  --purple:   #6c71c4;
+  --pink:     #d33682;
+  --teal:     #2aa198;
+  --sky:      #268bd2;
+}
+
+/* ── One Light ───────────────────────────────────────────────────────────── */
+:root[data-theme="one-light"] {
+  --bg:       #fafafa;
+  --surface:  #f0f0f0;
+  --surface2: #e5e5e5;
+  --overlay:  #d9d9d9;
+  --border:   #c8c8c8;
+  --text:     #383a42;
+  --subtext:  #696c77;
+  --dim:      #a0a1a7;
+  --blue:     #4078f2;
+  --green:    #50a14f;
+  --yellow:   #c18401;
+  --orange:   #d75f00;
+  --red:      #e45649;
+  --purple:   #a626a4;
+  --pink:     #ca1243;
+  --teal:     #0184bc;
+  --sky:      #4078f2;
+}
+
+/* ── Rosé Pine Dawn ──────────────────────────────────────────────────────── */
+:root[data-theme="rose-pine-dawn"] {
+  --bg:       #faf4ed;
+  --surface:  #fffaf3;
+  --surface2: #f2e9de;
+  --overlay:  #dfdad9;
+  --border:   #cecacd;
+  --text:     #575279;
+  --subtext:  #797593;
+  --dim:      #9893a5;
+  --blue:     #286983;
+  --green:    #56949f;
+  --yellow:   #ea9d34;
+  --orange:   #d7827e;
+  --red:      #b4637a;
+  --purple:   #907aa9;
+  --pink:     #d7827e;
+  --teal:     #56949f;
+  --sky:      #286983;
+}
+
+/* ── Everforest Light ────────────────────────────────────────────────────── */
+:root[data-theme="everforest-light"] {
+  --bg:       #fff9ef;
+  --surface:  #f4f0d9;
+  --surface2: #edeada;
+  --overlay:  #e0dcc7;
+  --border:   #d3c6aa;
+  --text:     #5c6a72;
+  --subtext:  #708090;
+  --dim:      #939f91;
+  --blue:     #3a94c5;
+  --green:    #8da101;
+  --yellow:   #dfa000;
+  --orange:   #f57d26;
+  --red:      #f85552;
+  --purple:   #df69ba;
+  --pink:     #df69ba;
+  --teal:     #35a77c;
+  --sky:      #3a94c5;
+}
+
+/* ── Flexoki Light ───────────────────────────────────────────────────────── */
+:root[data-theme="flexoki-light"] {
+  --bg:       #fffcf0;
+  --surface:  #f2f0e5;
+  --surface2: #e6e4d9;
+  --overlay:  #dad8ce;
+  --border:   #cecdc3;
+  --text:     #100f0f;
+  --subtext:  #403e3c;
+  --dim:      #878580;
+  --blue:     #205ea6;
+  --green:    #3aa99f;
+  --yellow:   #ad8301;
+  --orange:   #bc5215;
+  --red:      #af3029;
+  --purple:   #5e409d;
+  --pink:     #ce5d97;
+  --teal:     #3aa99f;
+  --sky:      #205ea6;
+}
