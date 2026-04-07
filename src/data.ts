@@ -137,6 +137,72 @@ export function loadAllSessionMetas(): Record<string, SessionMeta> {
   return result;
 }
 
+/** Return stub metas for JSONL sessions that have no session-meta file.
+ *  Reads just the first line of each JSONL to get the `cwd` field. */
+export function loadOrphanSessionMetas(knownIds: Set<string>): Record<string, SessionMeta> {
+  const projectsDir = join(CLAUDE_DIR, 'projects');
+  if (!existsSync(projectsDir)) return {};
+  const result: Record<string, SessionMeta> = {};
+
+  try {
+    for (const encodedProject of readdirSync(projectsDir)) {
+      const projectDir = join(projectsDir, encodedProject);
+      let jsonlFiles: string[];
+      try {
+        jsonlFiles = readdirSync(projectDir).filter(f => f.endsWith('.jsonl'));
+      } catch { continue; }
+
+      for (const jsonlFile of jsonlFiles) {
+        const sessionId = jsonlFile.replace(/\.jsonl$/, '');
+        if (knownIds.has(sessionId)) continue;
+
+        // Read first few lines to find cwd
+        let projectPath = '';
+        try {
+          const content = readFileSync(join(projectDir, jsonlFile), 'utf-8');
+          for (const line of content.split('\n').slice(0, 20)) {
+            if (!line.trim()) continue;
+            try {
+              const rec = JSON.parse(line) as Record<string, unknown>;
+              if (typeof rec['cwd'] === 'string' && rec['cwd']) {
+                projectPath = rec['cwd'];
+                break;
+              }
+            } catch { /* skip */ }
+          }
+        } catch { continue; }
+
+        if (!projectPath) continue;
+
+        result[sessionId] = {
+          sessionId,
+          projectPath,
+          startTime: '',
+          firstPrompt: '',
+          durationMinutes: 0,
+          userMessageCount: 0,
+          assistantMessageCount: 0,
+          gitCommits: 0,
+          gitPushes: 0,
+          linesAdded: 0,
+          linesRemoved: 0,
+          filesModified: 0,
+          languages: {},
+          toolCounts: {},
+          toolErrors: 0,
+          userInterruptions: 0,
+          usesMcp: false,
+          usesWebSearch: false,
+          usesWebFetch: false,
+          usesTaskAgent: false,
+        };
+      }
+    }
+  } catch { /* skip */ }
+
+  return result;
+}
+
 // ── Configs ────────────────────────────────────────────────────────────────
 
 function parseSettingsFile(path: string): SettingsConfig | null {

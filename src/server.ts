@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 import { readFileSync, existsSync } from 'fs';
 import { emitter, getAllSessionStates, startWatcher } from './watcher.js';
 import { loadGlobalStats, CLAUDE_DIR } from './parser.js';
-import { loadHistory, loadAllTodos, loadPlans, loadSettings, loadAllSessionMetas, loadAllSessionFacets, loadConfigs } from './data.js';
+import { loadHistory, loadAllTodos, loadPlans, loadSettings, loadAllSessionMetas, loadOrphanSessionMetas, loadAllSessionFacets, loadConfigs } from './data.js';
 import type {
   WsMessage,
   InitialStateData,
@@ -169,6 +169,8 @@ app.get('/api/v1/analytics', (_req, res) => {
 
 app.get('/api/v1/projects', (_req, res) => {
   const allMetas  = loadAllSessionMetas();
+  const orphans   = loadOrphanSessionMetas(new Set(Object.keys(allMetas)));
+  Object.assign(allMetas, orphans);
   const allFacets = loadAllSessionFacets();
 
   // Group sessions by project path

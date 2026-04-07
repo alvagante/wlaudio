@@ -84,7 +84,7 @@
 <body>
 
   <header>
-    <div class="logo"><a href="/themes.html" class="theme-icon-link">⬡</a> Wlaudio 0.4.0</div>
+    <div class="logo"><a href="/themes.html" class="theme-icon-link">⬡</a> <a href="/" class="theme-icon-link" style="opacity:1;font-weight:inherit">Wlaudio 0.4.0</a></div>
     <nav class="header-nav">
       <a href="/" class="nav-link">DASHBOARD</a>
       <a href="/sessions.html" class="nav-link">SESSIONS</a>
@@ -134,12 +134,12 @@
         yellow: '#e5c890', orange: '#ef9f76', teal: '#81c8be',
       },
       {
-        id: 'latte',
-        name: 'Catppuccin Latte',
-        sub: 'light · warm white',
-        bg: '#eff1f5', surface: '#e6e9ef', blue: '#1e66f5',
-        green: '#40a02b', red: '#d20f39', purple: '#8839ef',
-        yellow: '#df8e1d', orange: '#fe640b', teal: '#179299',
+        id: 'solarized',
+        name: 'Solarized Dark',
+        sub: 'dark · deep teal',
+        bg: '#002b36', surface: '#073642', blue: '#268bd2',
+        green: '#859900', red: '#dc322f', purple: '#6c71c4',
+        yellow: '#b58900', orange: '#cb4b16', teal: '#2aa198',
       },
       {
         id: 'tokyo-night',
@@ -174,12 +174,12 @@
         yellow: '#f1fa8c', orange: '#ffb86c', teal: '#8be9fd',
       },
       {
-        id: 'solarized',
-        name: 'Solarized Dark',
-        sub: 'dark · deep teal',
-        bg: '#002b36', surface: '#073642', blue: '#268bd2',
-        green: '#859900', red: '#dc322f', purple: '#6c71c4',
-        yellow: '#b58900', orange: '#cb4b16', teal: '#2aa198',
+        id: 'latte',
+        name: 'Catppuccin Latte',
+        sub: 'light · warm white',
+        bg: '#eff1f5', surface: '#e6e9ef', blue: '#1e66f5',
+        green: '#40a02b', red: '#d20f39', purple: '#8839ef',
+        yellow: '#df8e1d', orange: '#fe640b', teal: '#179299',
       },
 
       {
@@ -241,7 +241,7 @@
       },
     ];
 
-    const current = localStorage.getItem('wlaudio-theme') || 'mocha';
+    const current = localStorage.getItem('wlaudio-theme') || 'flexoki-light';
 
     function buildCard(t) {
       const isActive = t.id === current;
