@@ -3,250 +3,127 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Wlaudio, the Claude Monitor</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Wlaudio — Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css" />
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="themes.css" />
 </head>
 <body>
+
   <header>
     <div class="header-left">
-      <div class="logo">⬡ WLAUDIO, the CLAUDE MONITOR v0.3.0</div>
+      <div class="logo"><a href="/themes.html" class="theme-icon-link">⬡</a> Wlaudio 0.4.0</div>
       <div class="conn-indicator">
         <span id="conn-dot" class="dot disconnected"></span>
         <span id="conn-label">CONNECTING</span>
       </div>
     </div>
     <nav class="header-nav">
+      <a href="/" class="nav-link active">DASHBOARD</a>
+      <a href="/sessions.html" class="nav-link">SESSIONS</a>
       <a href="/analytics.html" class="nav-link">ANALYTICS</a>
       <a href="/projects.html" class="nav-link">PROJECTS</a>
       <a href="/configs.html" class="nav-link">CONFIGS</a>
+          <a href="/themes.html" class="nav-link">THEMES</a>
     </nav>
   </header>
 
-  <aside id="sidebar">
-    <div class="panel-header">
-      SESSIONS <span id="session-count" class="badge">0</span>
+  <main class="db-main">
+
+    <!-- ── Live sessions ─────────────────────────────────────────────── -->
+    <div class="db-section-header">
+      <span class="db-section-title">LIVE <span id="db-live-count" class="db-badge"></span></span>
+      <a href="/sessions.html" class="db-section-link">full session view →</a>
     </div>
-    <ul id="session-list"></ul>
+    <div id="db-live-container" class="db-live-row"></div>
 
-    <div class="panel-header" style="margin-top:auto">TODAY</div>
-    <div id="global-stats" class="global-stats">
-      <div class="stat-row"><span class="dim">Sessions</span><span id="gs-sessions">—</span></div>
-      <div class="stat-row"><span class="dim">Messages</span><span id="gs-messages">—</span></div>
-      <div class="stat-row"><span class="dim">Input tok</span><span id="gs-input">—</span></div>
-      <div class="stat-row"><span class="dim">Output tok</span><span id="gs-output">—</span></div>
-      <div class="stat-row"><span class="dim">Cache read</span><span id="gs-cache">—</span></div>
+    <!-- ── Summary stats ─────────────────────────────────────────────── -->
+    <div class="db-section-header" style="margin-top:0.25rem">
+      <span class="db-section-title">AT A GLANCE</span>
     </div>
-    <div id="sparkline-wrap"><canvas id="sparkline" height="48"></canvas></div>
-
-    <div class="panel-header">PLANS <span id="plans-count" class="badge">0</span></div>
-    <div id="sidebar-plans" class="sidebar-plans"></div>
-
-    <div class="panel-header">CONFIG</div>
-    <div id="config-panel" class="config-panel"></div>
-  </aside>
-
-  <main id="main">
-    <div id="empty-state">
-      <div class="empty-icon">⬡</div>
-      <div>No active sessions</div>
-      <div class="dim" style="font-size:0.8rem;margin-top:0.5rem">Start Claude Code to see live data</div>
+    <div class="db-stats-grid">
+      <div class="db-stat-card">
+        <div class="db-stat-label">Total Sessions</div>
+        <div id="db-total-sessions" class="db-stat-value">—</div>
+      </div>
+      <div class="db-stat-card">
+        <div class="db-stat-label">Total Messages</div>
+        <div id="db-total-messages" class="db-stat-value">—</div>
+      </div>
+      <div class="db-stat-card">
+        <div class="db-stat-label">Projects</div>
+        <div id="db-total-projects" class="db-stat-value">—</div>
+      </div>
+      <div class="db-stat-card">
+        <div class="db-stat-label">Git Commits</div>
+        <div id="db-total-commits" class="db-stat-value">—</div>
+      </div>
+      <div class="db-stat-card">
+        <div class="db-stat-label">Lines Added</div>
+        <div id="db-total-lines" class="db-stat-value">—</div>
+      </div>
+      <div class="db-stat-card">
+        <div class="db-stat-label">Most Active</div>
+        <div id="db-top-project" class="db-stat-value" style="font-size:0.95rem">—</div>
+      </div>
     </div>
 
-    <div id="session-detail" class="hidden">
-      <div class="detail-header">
-        <div>
-          <div id="detail-project" class="project-name"></div>
-          <div id="detail-meta" class="detail-meta"></div>
+    <!-- ── Recent sessions + Top projects ────────────────────────────── -->
+    <div class="db-two-col">
+
+      <div>
+        <div class="db-section-header">
+          <span class="db-section-title">RECENT SESSIONS</span>
+          <a href="/sessions.html" class="db-section-link">all sessions →</a>
         </div>
-        <div class="detail-header-actions">
-          <button id="files-btn" class="files-btn">CLAUDE FILES</button>
-          <div class="cost-wrap">
-            <div id="detail-cost" class="cost-badge"></div>
-            <div class="cost-tooltip">
-              <div id="ct-model-breakdown" class="ct-model-breakdown"></div>
-              <div class="ct-title">Estimated API cost</div>
-              <div class="ct-note">What this session would cost via direct API access — without a Claude Code subscription. Subscribers pay a flat monthly fee instead.</div>
-              <table class="ct-table">
-                <thead>
-                  <tr><th>Model</th><th>Input</th><th>Output</th><th>Cache R</th><th>Cache W</th></tr>
-                </thead>
-                <tbody>
-                  <tr><td>Opus</td><td>$15</td><td>$75</td><td>$1.50</td><td>$18.75</td></tr>
-                  <tr><td>Sonnet</td><td>$3</td><td>$15</td><td>$0.30</td><td>$3.75</td></tr>
-                  <tr><td>Haiku</td><td>$0.80</td><td>$4</td><td>$0.08</td><td>$1.00</td></tr>
-                </tbody>
-              </table>
-              <div class="ct-unit">USD per million tokens</div>
-            </div>
+        <div class="db-card">
+          <div id="db-recent-sessions"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="db-section-header">
+          <span class="db-section-title">TOP PROJECTS</span>
+          <a href="/projects.html" class="db-section-link">all projects →</a>
+        </div>
+        <div class="db-card">
+          <div id="db-top-projects"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── Activity + Config health ──────────────────────────────────── -->
+    <div class="db-two-col">
+
+      <div>
+        <div class="db-section-header">
+          <span class="db-section-title">ACTIVITY — last 14 days</span>
+          <a href="/analytics.html" class="db-section-link">full analytics →</a>
+        </div>
+        <div class="db-card">
+          <div class="db-chart-wrap">
+            <canvas id="db-activity-chart"></canvas>
           </div>
         </div>
       </div>
 
-      <!-- First prompt card -->
-      <div id="first-prompt-card" class="first-prompt-card hidden"><span class="fp-label">FIRST PROMPT</span><p id="first-prompt-text" class="fp-text"></p></div>
-
-      <!-- AI insight summary (shown when facets data is available) -->
-      <div id="summary-card" class="summary-card hidden">
-        <div class="summary-top">
-          <span class="summary-label">GOAL</span>
-          <span id="summary-goal" class="summary-goal"></span>
-          <span id="summary-outcome" class="summary-badge"></span>
-          <span id="summary-helpful" class="summary-badge"></span>
-          <span id="summary-friction" class="summary-badge hidden"></span>
+      <div>
+        <div class="db-section-header">
+          <span class="db-section-title">CONFIG HEALTH</span>
+          <a href="/configs.html" class="db-section-link">full config →</a>
         </div>
-        <div id="summary-text" class="summary-text"></div>
-        <div id="summary-friction-detail" class="summary-friction-detail"></div>
-        <div id="summary-tags" class="summary-tags"></div>
-      </div>
-
-      <div class="metrics-grid">
-        <div class="metric-card">
-          <div class="metric-label">INPUT</div>
-          <div id="m-input" class="metric-value blue">0</div>
-          <div class="metric-sub">tokens</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">OUTPUT</div>
-          <div id="m-output" class="metric-value green">0</div>
-          <div class="metric-sub">tokens</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">CACHE READ</div>
-          <div id="m-cache-r" class="metric-value purple">0</div>
-          <div class="metric-sub">tokens (90% off)</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">CACHE WRITE</div>
-          <div id="m-cache-w" class="metric-value yellow">0</div>
-          <div class="metric-sub">tokens</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">TOOLS CALLED</div>
-          <div id="m-tools" class="metric-value orange">0</div>
-          <div id="m-tools-sub" class="metric-sub">total</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">DURATION</div>
-          <div id="m-duration" class="metric-value teal">—</div>
-          <div class="metric-sub">active</div>
+        <div class="db-card">
+          <div id="db-config-health"></div>
         </div>
       </div>
 
-      <!-- Code impact row (shown when session-meta is available) -->
-      <div id="impact-row" class="impact-row hidden">
-        <div class="impact-card">
-          <div id="imp-add" class="impact-val green">—</div>
-          <div class="impact-label">LINES +</div>
-        </div>
-        <div class="impact-card">
-          <div id="imp-del" class="impact-val red">—</div>
-          <div class="impact-label">LINES −</div>
-        </div>
-        <div class="impact-card">
-          <div id="imp-files" class="impact-val blue">—</div>
-          <div class="impact-label">FILES</div>
-        </div>
-        <div class="impact-card">
-          <div id="imp-commits" class="impact-val yellow">—</div>
-          <div class="impact-label">COMMITS</div>
-        </div>
-        <div class="impact-card">
-          <div id="imp-pushes" class="impact-val purple">—</div>
-          <div class="impact-label">PUSHES</div>
-        </div>
-        <div class="impact-card impact-card-wide">
-          <div id="imp-langs" class="impact-val teal">—</div>
-          <div class="impact-label">LANGUAGES</div>
-        </div>
-        <div class="impact-card">
-          <div id="imp-interrupts" class="impact-val dim">—</div>
-          <div class="impact-label">INTERRUPTS</div>
-        </div>
-      </div>
-
-      <div id="activity-hours" class="activity-hours hidden"><div class="ah-label">ACTIVE HOURS</div><div id="ah-bars" class="ah-bars"></div></div>
-
-      <div class="charts-row">
-        <div class="chart-card">
-          <div class="chart-title">TOKEN DISTRIBUTION</div>
-          <div class="chart-wrap"><canvas id="token-chart"></canvas></div>
-        </div>
-        <div class="chart-card flex-1">
-          <div class="chart-title">TOP TOOLS</div>
-          <div id="tool-bars"></div>
-        </div>
-      </div>
-
-      <!-- Tab bar -->
-      <div class="tab-bar">
-        <button class="tab active" data-tab="tools">
-          TOOLS <span id="timeline-count" class="badge">0</span>
-        </button>
-        <button class="tab" data-tab="prompts">
-          PROMPTS <span id="prompts-count" class="badge">0</span>
-        </button>
-        <button class="tab" data-tab="tasks">
-          TASKS <span id="tasks-count" class="badge">0</span>
-        </button>
-        <button class="tab" data-tab="files">
-          FILES <span id="fileops-count" class="badge">0</span>
-        </button>
-      </div>
-
-      <!-- Tab panels -->
-      <div id="tab-tools" class="tab-content">
-        <div id="timeline" class="timeline"></div>
-      </div>
-      <div id="tab-prompts" class="tab-content hidden">
-        <div id="prompts-list" class="prompts-list"></div>
-      </div>
-      <div id="tab-tasks" class="tab-content hidden">
-        <div id="tasks-list" class="tasks-list"></div>
-      </div>
-      <div id="tab-files" class="tab-content hidden">
-        <div class="fh-layout">
-          <div class="fh-list" id="fh-file-list"></div>
-          <div class="fh-ops" id="fh-ops-panel"></div>
-        </div>
-      </div>
     </div>
+
   </main>
 
-  <!-- Plans modal -->
-  <div id="plans-modal" class="modal hidden">
-    <div id="plan-modal-backdrop" class="modal-backdrop"></div>
-    <div class="modal-content">
-      <div class="modal-header">
-        <span id="plan-modal-title" class="modal-title"></span>
-        <button id="plan-modal-close" class="modal-close">×</button>
-      </div>
-      <pre id="plan-modal-body" class="plan-body"></pre>
-    </div>
-  </div>
-
-  <!-- Tool call detail popup -->
-  <div id="tool-popup-overlay" class="hidden">
-    <div id="tool-popup"></div>
-  </div>
-
-  <!-- Session files popup -->
-  <div id="files-popup-overlay" class="hidden">
-    <div id="files-popup">
-      <div class="fpopup-header">
-        <span class="fpopup-title">SESSION FILES</span>
-        <button class="popup-close" id="files-popup-close">✕</button>
-      </div>
-      <div class="fpopup-body">
-        <div class="fpopup-list" id="files-list"></div>
-        <div class="fpopup-content">
-          <pre id="files-content"></pre>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script type="module" src="app.js"></script>
+  <script src="dashboard.js"></script>
 
 </body>
 </html>

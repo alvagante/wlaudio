@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wlaudio — Themes</title>
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="analytics.css" />
+  <link rel="stylesheet" href="themes.css" />
+  <style>
+    .th-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .th-card {
+      border: 2px solid var(--overlay);
+      border-radius: var(--radius);
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color 0.15s, transform 0.1s;
+    }
+
+    .th-card:hover   { border-color: var(--border); transform: translateY(-1px); }
+    .th-card.active  { border-color: var(--blue); }
+
+    .th-preview {
+      padding: 0.75rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .th-preview-bar {
+      height: 8px;
+      border-radius: 4px;
+    }
+
+    .th-swatch-row {
+      display: flex;
+      gap: 4px;
+      margin-top: 0.25rem;
+    }
+
+    .th-swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .th-card-footer {
+      background: var(--surface2);
+      padding: 0.6rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .th-name {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .th-active-badge {
+      font-size: 0.58rem;
+      font-weight: 600;
+      background: var(--blue);
+      color: var(--bg);
+      padding: 0.1rem 0.5rem;
+      border-radius: 8px;
+      letter-spacing: 0.05em;
+    }
+
+    .th-sub {
+      font-size: 0.62rem;
+      color: var(--dim);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo"><a href="/themes.html" class="theme-icon-link">⬡</a> Wlaudio 0.4.0</div>
+    <nav class="header-nav">
+      <a href="/" class="nav-link">DASHBOARD</a>
+      <a href="/sessions.html" class="nav-link">SESSIONS</a>
+      <a href="/analytics.html" class="nav-link">ANALYTICS</a>
+      <a href="/projects.html" class="nav-link">PROJECTS</a>
+      <a href="/configs.html" class="nav-link">CONFIGS</a>
+      <a href="/themes.html" class="nav-link active">THEMES</a>
+    </nav>
+  </header>
+
+  <main class="an-main">
+
+    <div style="margin-bottom:1.5rem">
+      <div class="an-section-title" style="font-size:0.8rem;margin-bottom:0.3rem">Color Themes</div>
+      <div style="font-size:0.7rem;color:var(--dim)">Click a theme to apply it. Your choice is saved in the browser.</div>
+    </div>
+
+    <div class="th-grid" id="th-grid"></div>
+
+  </main>
+
+  <script src="themes.css" type="ignore"></script><!-- themes already loaded via link -->
+  <script>
+    const THEMES = [
+      {
+        id: 'mocha',
+        name: 'Catppuccin Mocha',
+        sub: 'default · dark purple',
+        bg: '#1e1e2e', surface: '#181825', blue: '#89b4fa',
+        green: '#a6e3a1', red: '#f38ba8', purple: '#cba6f7',
+        yellow: '#f9e2af', orange: '#fab387', teal: '#94e2d5',
+      },
+      {
+        id: 'macchiato',
+        name: 'Catppuccin Macchiato',
+        sub: 'dark · slightly lighter',
+        bg: '#24273a', surface: '#1e2030', blue: '#8aadf4',
+        green: '#a6da95', red: '#ed8796', purple: '#c6a0f6',
+        yellow: '#eed49f', orange: '#f5a97f', teal: '#8bd5ca',
+      },
+      {
+        id: 'frappe',
+        name: 'Catppuccin Frappe',
+        sub: 'medium dark · softer',
+        bg: '#303446', surface: '#292c3c', blue: '#8caaee',
+        green: '#a6d189', red: '#e78284', purple: '#ca9ee6',
+        yellow: '#e5c890', orange: '#ef9f76', teal: '#81c8be',
+      },
+      {
+        id: 'latte',
+        name: 'Catppuccin Latte',
+        sub: 'light · warm white',
+        bg: '#eff1f5', surface: '#e6e9ef', blue: '#1e66f5',
+        green: '#40a02b', red: '#d20f39', purple: '#8839ef',
+        yellow: '#df8e1d', orange: '#fe640b', teal: '#179299',
+      },
+      {
+        id: 'tokyo-night',
+        name: 'Tokyo Night',
+        sub: 'dark · deep blue',
+        bg: '#1a1b26', surface: '#16161e', blue: '#7aa2f7',
+        green: '#9ece6a', red: '#f7768e', purple: '#bb9af7',
+        yellow: '#e0af68', orange: '#ff9e64', teal: '#73daca',
+      },
+      {
+        id: 'gruvbox',
+        name: 'Gruvbox Dark',
+        sub: 'dark · warm brown',
+        bg: '#282828', surface: '#1d2021', blue: '#83a598',
+        green: '#b8bb26', red: '#fb4934', purple: '#d3869b',
+        yellow: '#fabd2f', orange: '#fe8019', teal: '#8ec07c',
+      },
+      {
+        id: 'nord',
+        name: 'Nord',
+        sub: 'dark · arctic blue',
+        bg: '#2e3440', surface: '#272c36', blue: '#81a1c1',
+        green: '#a3be8c', red: '#bf616a', purple: '#b48ead',
+        yellow: '#ebcb8b', orange: '#d08770', teal: '#88c0d0',
+      },
+      {
+        id: 'dracula',
+        name: 'Dracula',
+        sub: 'dark · classic purple',
+        bg: '#282a36', surface: '#21222c', blue: '#6272a4',
+        green: '#50fa7b', red: '#ff5555', purple: '#bd93f9',
+        yellow: '#f1fa8c', orange: '#ffb86c', teal: '#8be9fd',
+      },
+      {
+        id: 'solarized',
+        name: 'Solarized Dark',
+        sub: 'dark · deep teal',
+        bg: '#002b36', surface: '#073642', blue: '#268bd2',
+        green: '#859900', red: '#dc322f', purple: '#6c71c4',
+        yellow: '#b58900', orange: '#cb4b16', teal: '#2aa198',
+      },
+    ];
+
+    const current = localStorage.getItem('wlaudio-theme') || 'mocha';
+
+    function buildCard(t) {
+      const isActive = t.id === current;
+      return `
+        <div class="th-card${isActive ? ' active' : ''}" data-id="${t.id}">
+          <div class="th-preview" style="background:${t.bg}">
+            <div class="th-preview-bar" style="background:${t.surface};width:100%"></div>
+            <div class="th-preview-bar" style="background:${t.blue};width:70%"></div>
+            <div class="th-preview-bar" style="background:${t.surface};width:100%"></div>
+            <div class="th-swatch-row">
+              <div class="th-swatch" style="background:${t.blue}"></div>
+              <div class="th-swatch" style="background:${t.green}"></div>
+              <div class="th-swatch" style="background:${t.red}"></div>
+              <div class="th-swatch" style="background:${t.purple}"></div>
+              <div class="th-swatch" style="background:${t.yellow}"></div>
+              <div class="th-swatch" style="background:${t.orange}"></div>
+              <div class="th-swatch" style="background:${t.teal}"></div>
+            </div>
+          </div>
+          <div class="th-card-footer">
+            <div>
+              <div class="th-name">${t.name}</div>
+              <div class="th-sub">${t.sub}</div>
+            </div>
+            ${isActive ? '<span class="th-active-badge">ACTIVE</span>' : ''}
+          </div>
+        </div>`;
+    }
+
+    const grid = document.getElementById('th-grid');
+    grid.innerHTML = THEMES.map(buildCard).join('');
+
+    grid.addEventListener('click', (e) => {
+      const card = e.target.closest('[data-id]');
+      if (!card) return;
+      const id = card.dataset.id;
+
+      localStorage.setItem('wlaudio-theme', id);
+
+      if (id === 'mocha') {
+        document.documentElement.removeAttribute('data-theme');
+      } else {
+        document.documentElement.setAttribute('data-theme', id);
+      }
+
+      // Update active state
+      grid.querySelectorAll('.th-card').forEach(c => {
+        const active = c.dataset.id === id;
+        c.classList.toggle('active', active);
+        const badge = c.querySelector('.th-active-badge');
+        const footer = c.querySelector('.th-card-footer > div');
+        if (active && !badge) {
+          footer.insertAdjacentHTML('afterend', '<span class="th-active-badge">ACTIVE</span>');
+        } else if (!active && badge) {
+          badge.remove();
+        }
+      });
+    });
+  </script>
+
+</body>
+</html>
