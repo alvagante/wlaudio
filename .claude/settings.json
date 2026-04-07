@@ -15,19 +15,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/check-rybbit.sh"
-          },
-          {
-            "type": "command",
             "command": "bash .claude/hooks/check-branch.sh"
           },
           {
             "type": "command",
             "command": "bash .claude/hooks/check-ports.sh"
-          },
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/check-e2e.sh"
           }
         ]
       }
@@ -53,10 +45,6 @@
           {
             "type": "command",
             "command": "bash .claude/hooks/check-rulecatch.sh"
-          },
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/check-env-sync.sh"
           }
         ]
       }

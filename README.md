@@ -40,6 +40,22 @@ Wlaudio reads directly from `~/.claude/` and streams live data to a browser dash
 | **Languages worked in** | Horizontal bar chart of the top 12 languages by file count, aggregated across all sessions |
 | **Model usage & cost** | Table of token counts and estimated cost per model, with totals |
 
+### Sessions page (`/sessions.html`)
+
+Full-page session browser — same sidebar and detail view as the dashboard, without the analytics nav clutter.
+
+### Projects page (`/projects.html`)
+
+Aggregated view per working directory. Select a project to see session count, total tokens, git commits, lines added/removed, top languages, outcome doughnut, and a list of every session. Sort by most recent, session count, commits, or lines changed.
+
+### Configs page (`/configs.html`)
+
+Reads global and per-project `settings.json` files and renders MCP servers, hooks (grouped by event and matcher), allow/deny permission rules, and model overrides. Project cards show hook and rule counts at a glance.
+
+### Themes page (`/themes.html`)
+
+Live theme picker with 17 colour schemes — Catppuccin variants, Tokyo Night, Gruvbox, Nord, Dracula, Solarized, GitHub Light, and more. Click to apply; choice persists in `localStorage`.
+
 ---
 
 ## Quick start
@@ -102,17 +118,28 @@ wlaudio/
 │   ├── data.ts          Loaders for history, todos, plans, meta, facets
 │   └── index.ts         Entry point, graceful shutdown
 ├── public/
-│   ├── index.html       Session dashboard shell
-│   ├── analytics.html   Analytics page (standalone)
-│   ├── app.js           WebSocket client + state orchestration
+│   ├── index.html       Session dashboard
+│   ├── sessions.html    Sessions browser
+│   ├── analytics.html   Cross-session analytics
+│   ├── projects.html    Per-project aggregates
+│   ├── configs.html     Settings viewer (MCP, hooks, permissions)
+│   ├── themes.html      Theme picker
+│   ├── app.js           WebSocket client + state
+│   ├── dashboard.js     Dashboard rendering
 │   ├── render.js        Metrics, charts, tool timeline, popups
-│   ├── insights.js      AI summary card, first prompt, activity hours
-│   ├── file-history.js  Files tab: Write/Edit/Read diff view
-│   ├── sidebar.js       Session list, global stats, plans, settings
-│   ├── analytics.js     Analytics page charts and tables
-│   ├── utils.js         Shared formatters and colour helpers
-│   ├── style.css        Catppuccin Mocha dark theme (dashboard)
-│   └── analytics.css    Catppuccin Mocha dark theme (analytics)
+│   ├── insights.js      AI summary card, activity hours
+│   ├── file-history.js  Files tab: diff view
+│   ├── sidebar.js       Session list, global stats, plans
+│   ├── analytics.js     Analytics charts and tables
+│   ├── projects.js      Projects page
+│   ├── configs.js       Configs page
+│   ├── theme.js         Theme loader (no-flash)
+│   ├── utils.js         Shared formatters and helpers
+│   ├── style.css        Base dark theme (Catppuccin Mocha)
+│   ├── themes.css       17 theme overrides
+│   ├── analytics.css    Analytics page styles
+│   ├── projects.css     Projects page styles
+│   └── configs.css      Configs page styles
 └── docs/
     └── screenshot.png
 ```
