@@ -138,9 +138,10 @@ export function loadAllSessionMetas(): Record<string, SessionMeta> {
 }
 
 /** Return stub metas for JSONL sessions that have no session-meta file.
- *  Reads just the first line of each JSONL to get the `cwd` field. */
-export function loadOrphanSessionMetas(knownIds: Set<string>): Record<string, SessionMeta> {
-  const projectsDir = join(CLAUDE_DIR, 'projects');
+ *  Reads just the first line of each JSONL to get the `cwd` field.
+ *  @param claudeDir - override for testing; defaults to CLAUDE_DIR */
+export function loadOrphanSessionMetas(knownIds: Set<string>, claudeDir = CLAUDE_DIR): Record<string, SessionMeta> {
+  const projectsDir = join(claudeDir, 'projects');
   if (!existsSync(projectsDir)) return {};
   const result: Record<string, SessionMeta> = {};
 
