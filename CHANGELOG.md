@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.4.0
+
+### New pages
+
+- **Sessions page** (`/sessions.html`) — dedicated full-page session browser with sidebar, live stats, sparkline, plans, and config panel; same detail view as the dashboard
+- **Projects page** (`/projects.html`) — per-project aggregates: session count, total tokens, git commits, lines added/removed, languages, outcome doughnut chart, and a list of all sessions for the selected project; sortable by most recent / session count / commits / lines
+- **Configs page** (`/configs.html`) — view global and per-project `settings.json` in one place: MCP servers, hooks (grouped by event), allow/deny permission rules, and model settings; project cards show hook/rule counts at a glance
+- **Themes page** (`/themes.html`) — live theme switcher; pick from 17 colour schemes (Catppuccin Mocha/Macchiato/Frappe/Latte, Tokyo Night, Gruvbox, Nord, Dracula, Solarized, GitHub Light, Solarized Light, One Light, Rosé Pine Dawn, Everforest Light, Flexoki Light, B&W, and the default Mocha); choice persists in `localStorage`
+
+### Navigation
+
+- Top nav bar now links all five pages: Dashboard · Sessions · Analytics · Projects · Configs · Themes
+
+### Backend
+
+- New `/api/v1/projects` endpoint — aggregates session metadata by working directory
+- New `/api/v1/configs` endpoint — reads global + per-project `settings.json` files
+- `dashboard.js` extracted from `app.js` — dashboard-specific rendering split into its own module
+
+### Theme system
+
+- `theme.js` — applies saved theme before first paint (no flash)
+- `themes.css` — 17 CSS variable overrides, one per theme
+
+---
+
 ## v0.3.0
 
 ### Analytics page (`/analytics.html`)

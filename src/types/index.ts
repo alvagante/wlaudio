@@ -107,6 +107,7 @@ export interface GlobalStats {
   hourCounts?: Record<string, number>;
   longestSession?: { sessionId: string; durationMinutes: number; messageCount: number; timestamp: string } | null;
   firstSessionDate?: string;
+  dailyModelTokens?: Array<{ date: string; tokensByModel: Record<string, number> }>;
 }
 
 export interface ModelAnalytics {

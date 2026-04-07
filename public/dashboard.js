@@ -15,7 +15,9 @@ function escHtml(s) {
   return String(s ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function fmtNum(n) {
@@ -64,7 +66,8 @@ function truncate(str, max) {
 // ── WebSocket ─────────────────────────────────────────────────────────────
 
 function connect() {
-  const ws = new WebSocket(`ws://${location.host}/ws`);
+  const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const ws = new WebSocket(`${wsProtocol}//${location.host}/ws`);
   ws.onopen    = () => setConn(true);
   ws.onclose   = () => { setConn(false); setTimeout(connect, 3000); };
   ws.onerror   = () => ws.close();

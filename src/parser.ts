@@ -247,6 +247,7 @@ export function loadGlobalStats(): GlobalStats | null {
             timestamp:       String(rawLongest['timestamp']       ?? ''),
           }
         : null,
+      dailyModelTokens: (data['dailyModelTokens'] as GlobalStats['dailyModelTokens'] | undefined) ?? [],
     };
   } catch {
     return null;

@@ -1,7 +1,7 @@
 import express from 'express';
 import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
-import { join, dirname, resolve } from 'path';
+import { join, dirname, resolve, basename } from 'path';
 import { fileURLToPath } from 'url';
 import { readFileSync, existsSync } from 'fs';
 import { emitter, getAllSessionStates, startWatcher } from './watcher.js';
@@ -95,11 +95,7 @@ app.get('/api/v1/analytics', (_req, res) => {
   }
 
   // ── Daily cost from dailyModelTokens in stats-cache ─────────────────────
-  let rawDailyTokens: Array<{ date: string; tokensByModel: Record<string, number> }> = [];
-  try {
-    const statsRaw = JSON.parse(readFileSync(join(CLAUDE_DIR, 'stats-cache.json'), 'utf-8')) as Record<string, unknown>;
-    rawDailyTokens = (statsRaw['dailyModelTokens'] as typeof rawDailyTokens | undefined) ?? [];
-  } catch { /* missing or malformed — skip */ }
+  const rawDailyTokens = globalStats?.dailyModelTokens ?? [];
 
   const dailyCosts: DailyCost[] = rawDailyTokens.slice(-60).map(day => {
     const byModel: Record<string, number> = {};
@@ -194,7 +190,13 @@ app.get('/api/v1/projects', (_req, res) => {
 
   const projects = [...byProject.entries()].map(([projectPath, { metas, facets }]) => {
     const sessions = metas
-      .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
+      .sort((a, b) => {
+        const aTime = Date.parse(a.startTime);
+        const bTime = Date.parse(b.startTime);
+        const aSortTime = Number.isNaN(aTime) ? Number.NEGATIVE_INFINITY : aTime;
+        const bSortTime = Number.isNaN(bTime) ? Number.NEGATIVE_INFINITY : bTime;
+        return bSortTime - aSortTime;
+      })
       .map(m => {
         const f = allFacets[m.sessionId];
         return {
@@ -244,13 +246,20 @@ app.get('/api/v1/projects', (_req, res) => {
       for (const [g, c] of Object.entries(f.goalCategories ?? {})) goalCategories[g] = (goalCategories[g] ?? 0) + c;
     }
 
-    const sorted      = metas.map(m => m.startTime).sort();
-    const lastActive  = sorted[sorted.length - 1] ?? '';
-    const firstActive = sorted[0] ?? '';
+    const sortedActiveTimes = metas
+      .map(m => {
+        const iso = m.startTime?.trim() ?? '';
+        const time = Date.parse(iso);
+        return Number.isNaN(time) ? null : { iso, time };
+      })
+      .filter((entry): entry is { iso: string; time: number } => entry !== null)
+      .sort((a, b) => a.time - b.time);
+    const firstActive = sortedActiveTimes[0]?.iso ?? '';
+    const lastActive  = sortedActiveTimes[sortedActiveTimes.length - 1]?.iso ?? '';
 
     return {
       projectPath,
-      projectName: projectPath.split('/').filter(Boolean).pop() ?? projectPath,
+      projectName: basename(projectPath.replace(/\\/g, '/')) || projectPath,
       sessionCount: metas.length,
       lastActive,
       firstActive,
