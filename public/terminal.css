@@ -1,13 +1,13 @@
-/* ── Terminal page layout ─────────────────────────────────────────────── */
+/* ── Terminal page — page-specific styles (palette + sidebar from shared.css) */
 
+/* ── Terminal two-panel layout ──────────────────────────────────────────── */
 .term-layout {
+  flex: 1;
   display: flex;
-  height: calc(100vh - var(--header-h, 48px));
   overflow: hidden;
 }
 
-/* ── Sidebar ──────────────────────────────────────────────────────────── */
-
+/* ── Control sidebar ─────────────────────────────────────────────────────── */
 .term-sidebar {
   width: 260px;
   min-width: 200px;
@@ -18,6 +18,7 @@
   flex-direction: column;
   overflow-y: auto;
   padding-bottom: 1rem;
+  flex-shrink: 0;
 }
 
 .term-sidebar-header {
@@ -25,212 +26,61 @@
   font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: 0.12em;
-  color: var(--muted);
+  color: var(--dim);
   text-transform: uppercase;
   border-bottom: 1px solid var(--border);
 }
 
-/* ── Launch form ──────────────────────────────────────────────────────── */
-
-.term-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-}
-
+/* ── Launch form ─────────────────────────────────────────────────────────── */
+.term-form { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem 1rem; }
 .term-label {
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  text-transform: uppercase;
-  margin-top: 0.25rem;
+  font-size: 0.65rem; font-weight: 600; letter-spacing: 0.08em;
+  color: var(--dim); text-transform: uppercase; margin-top: 0.25rem;
 }
-
-.term-select,
-.term-input {
-  background: var(--bg);
-  color: var(--fg);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 0.4rem 0.6rem;
-  font-size: 0.8rem;
-  font-family: inherit;
-  width: 100%;
-  box-sizing: border-box;
-  outline: none;
-  transition: border-color 0.15s;
+.term-select, .term-input {
+  background: var(--bg); color: var(--text); border: 1px solid var(--border);
+  border-radius: 4px; padding: 0.4rem 0.6rem; font-size: 0.8rem;
+  font-family: inherit; width: 100%; outline: none; transition: border-color 0.15s;
 }
-
-.term-select:focus,
-.term-input:focus {
-  border-color: var(--accent);
-}
-
-.term-input::placeholder {
-  color: var(--muted);
-}
-
+.term-select:focus, .term-input:focus { border-color: var(--blue); }
+.term-input::placeholder { color: var(--dim); }
 .term-launch-btn {
-  margin-top: 0.25rem;
-  background: var(--accent);
-  color: var(--bg);
-  border: none;
-  border-radius: 4px;
-  padding: 0.5rem 1rem;
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  cursor: pointer;
-  transition: opacity 0.15s;
+  margin-top: 0.25rem; background: var(--blue); color: var(--bg);
+  border: none; border-radius: 4px; padding: 0.5rem 1rem;
+  font-size: 0.8rem; font-weight: 700; letter-spacing: 0.05em;
+  cursor: pointer; transition: opacity 0.15s; font-family: inherit;
 }
+.term-launch-btn:hover { opacity: 0.85; }
 
-.term-launch-btn:hover {
-  opacity: 0.85;
-}
-
-/* ── Tab list ─────────────────────────────────────────────────────────── */
-
-.term-tab-list {
-  list-style: none;
-  margin: 0;
-  padding: 0.25rem 0;
-  flex: 1;
-}
-
+/* ── Tab list ────────────────────────────────────────────────────────────── */
+.term-tab-list { list-style: none; margin: 0; padding: 0.25rem 0; flex: 1; }
 .term-tab {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 1rem;
-  cursor: pointer;
-  font-size: 0.8rem;
-  color: var(--fg);
-  transition: background 0.1s;
+  display: flex; align-items: center; gap: 0.4rem;
+  padding: 0.4rem 1rem; cursor: pointer; font-size: 0.8rem;
+  color: var(--text); transition: background 0.1s;
   border-left: 2px solid transparent;
 }
-
-.term-tab:hover {
-  background: var(--bg);
-}
-
-.term-tab.active {
-  border-left-color: var(--accent);
-  background: var(--bg);
-  color: var(--accent);
-}
-
-.term-tab.exited {
-  opacity: 0.45;
-}
-
-.term-tab-label {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: monospace;
-}
-
+.term-tab:hover  { background: var(--overlay); }
+.term-tab.active { border-left-color: var(--blue); background: var(--overlay); color: var(--blue); }
+.term-tab.exited { opacity: 0.45; }
+.term-tab-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace; }
 .term-tab-close {
-  background: none;
-  border: none;
-  color: var(--muted);
-  font-size: 0.7rem;
-  cursor: pointer;
-  padding: 0 2px;
-  line-height: 1;
-  opacity: 0;
-  transition: opacity 0.1s;
+  background: none; border: none; color: var(--dim); font-size: 0.7rem;
+  cursor: pointer; padding: 0 2px; line-height: 1; opacity: 0; transition: opacity 0.1s;
 }
-
 .term-tab:hover .term-tab-close,
-.term-tab.active .term-tab-close {
-  opacity: 1;
-}
+.term-tab.active .term-tab-close { opacity: 1; }
+.term-tab-close:hover { color: var(--red); }
 
-.term-tab-close:hover {
-  color: var(--danger, #ff5555);
-}
-
-/* ── Main terminal area ───────────────────────────────────────────────── */
-
+/* ── Main terminal area ──────────────────────────────────────────────────── */
 .term-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--bg);
-  position: relative;
+  flex: 1; display: flex; flex-direction: column;
+  overflow: hidden; background: var(--bg); position: relative;
 }
-
 .term-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  gap: 0.75rem;
-  color: var(--muted);
-  font-size: 0.9rem;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100%; gap: 0.75rem; color: var(--dim); font-size: 0.9rem;
 }
-
-.term-empty-icon {
-  font-size: 2.5rem;
-  opacity: 0.3;
-}
-
-.term-container {
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-}
-
-.term-instance {
-  position: absolute;
-  inset: 0;
-  padding: 8px;
-  box-sizing: border-box;
-}
-
-/* xterm canvas must fill the wrapper */
-.term-instance .xterm {
-  height: 100%;
-}
-
-.term-instance .xterm-viewport {
-  overflow-y: auto !important;
-}
-
-/* ── Utilities ────────────────────────────────────────────────────────── */
-
-.hidden { display: none !important; }
-
-/* ── Connection indicator (shared with other pages) ──────────────────── */
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.conn-indicator {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  color: var(--muted);
-}
-
-.dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--muted);
-}
-
-.dot.connected    { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
-.dot.disconnected { background: var(--danger, #ff5555); }
+.term-empty-icon { font-size: 2.5rem; opacity: 0.3; }
+.term-container  { flex: 1; position: relative; overflow: hidden; }
+.term-instance   { position: absolute; inset: 0; padding: 8px; }

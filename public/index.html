@@ -4,124 +4,174 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Wlaudio — Dashboard</title>
-  <link rel="stylesheet" href="dashboard.css" />
+  <link rel="stylesheet" href="shared.css" />
   <script src="theme.js"></script>
   <link rel="stylesheet" href="themes.css" />
+  <link rel="stylesheet" href="dashboard.css" />
 </head>
 <body>
 
-  <header>
-    <div class="header-left">
-      <div class="logo"><a href="/themes.html" class="theme-icon-link">⬡</a> <a href="/" class="theme-icon-link" style="opacity:1;font-weight:inherit">Wlaudio 0.5.0</a></div>
-      <div class="conn-indicator">
-        <span id="conn-dot" class="dot disconnected"></span>
-        <span id="conn-label">CONNECTING</span>
-      </div>
-    </div>
-    <nav class="header-nav">
-      <a href="/" class="nav-link active">DASHBOARD</a>
-      <a href="/sessions.html" class="nav-link">SESSIONS</a>
-      <a href="/analytics.html" class="nav-link">ANALYTICS</a>
-      <a href="/projects.html" class="nav-link">PROJECTS</a>
-      <a href="/configs.html" class="nav-link">CONFIGS</a>
-          <a href="/themes.html" class="nav-link">THEMES</a>
-      <a href="/terminal.html" class="nav-link">TERMINAL</a>
-    </nav>
-  </header>
+  <div class="app-layout">
 
-  <main class="db-main">
+    <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <a href="/themes.html" class="sb-logo-icon">⬡</a>
+        <span class="sb-logo-text">WLAUDIO</span>
+        <span class="sb-version">0.5.0</span>
+      </div>
 
-    <!-- ── Live sessions ─────────────────────────────────────────────── -->
-    <div class="db-section-header">
-      <span class="db-section-title">LIVE <span id="db-live-count" class="db-badge"></span></span>
-      <a href="/sessions.html" class="db-section-link">full session view →</a>
-    </div>
-    <div id="db-live-container" class="db-live-row"></div>
+      <nav class="sidebar-nav">
+        <a href="/"              class="sn-link active"><span class="sn-icon">▪</span>DASHBOARD</a>
+        <a href="/sessions.html" class="sn-link"><span class="sn-icon">◈</span>SESSIONS</a>
+        <a href="/analytics.html"class="sn-link"><span class="sn-icon">◫</span>ANALYTICS</a>
+        <a href="/projects.html" class="sn-link"><span class="sn-icon">◧</span>PROJECTS</a>
+        <a href="/configs.html"  class="sn-link"><span class="sn-icon">◩</span>CONFIGS</a>
+        <a href="/themes.html"   class="sn-link"><span class="sn-icon">◐</span>THEMES</a>
+        <a href="/terminal.html" class="sn-link"><span class="sn-icon">▷</span>TERMINAL</a>
+      </nav>
 
-    <!-- ── Summary stats ─────────────────────────────────────────────── -->
-    <div class="db-section-header" style="margin-top:0.25rem">
-      <span class="db-section-title">AT A GLANCE</span>
-    </div>
-    <div class="db-stats-grid">
-      <div class="db-stat-card">
-        <div class="db-stat-label">Total Sessions</div>
-        <div id="db-total-sessions" class="db-stat-value">—</div>
-      </div>
-      <div class="db-stat-card">
-        <div class="db-stat-label">Total Messages</div>
-        <div id="db-total-messages" class="db-stat-value">—</div>
-      </div>
-      <div class="db-stat-card">
-        <div class="db-stat-label">Projects</div>
-        <div id="db-total-projects" class="db-stat-value">—</div>
-      </div>
-      <div class="db-stat-card">
-        <div class="db-stat-label">Git Commits</div>
-        <div id="db-total-commits" class="db-stat-value">—</div>
-      </div>
-      <div class="db-stat-card">
-        <div class="db-stat-label">Lines Added</div>
-        <div id="db-total-lines" class="db-stat-value">—</div>
-      </div>
-      <div class="db-stat-card">
-        <div class="db-stat-label">Most Active</div>
-        <div id="db-top-project" class="db-stat-value" style="font-size:0.95rem">—</div>
-      </div>
-    </div>
-
-    <!-- ── Recent sessions + Top projects ────────────────────────────── -->
-    <div class="db-two-col">
-
-      <div>
-        <div class="db-section-header">
-          <span class="db-section-title">RECENT SESSIONS</span>
-          <a href="/sessions.html" class="db-section-link">all sessions →</a>
+      <div class="sidebar-bottom">
+        <div class="focus-toggle">
+          <div class="ft-label">
+            <span class="ft-icon">◎</span>
+            <span>Focus Mode</span>
+          </div>
+          <button id="focus-btn" class="focus-btn" aria-pressed="false">OFF</button>
         </div>
-        <div class="db-card">
-          <div id="db-recent-sessions"></div>
+
+        <div class="conn-indicator">
+          <span id="conn-dot" class="dot disconnected"></span>
+          <span id="conn-label">CONNECTING</span>
         </div>
       </div>
+    </aside>
 
-      <div>
-        <div class="db-section-header">
-          <span class="db-section-title">TOP PROJECTS</span>
-          <a href="/projects.html" class="db-section-link">all projects →</a>
+    <!-- ── Main content ──────────────────────────────────────────────────── -->
+    <main class="db-main">
+
+      <!-- ── Hero: Most Active Session ────────────────────────────────── -->
+      <div class="db-hero focus-primary" id="db-hero">
+        <div class="db-hero-header">
+          <div class="db-live-badge" id="db-live-badge">
+            <span class="live-dot"></span>
+            <span class="live-label">LIVE</span>
+            <span id="db-live-count" class="live-count"></span>
+          </div>
+          <div class="db-hero-title">MOST ACTIVE SESSION</div>
+          <a href="/sessions.html" class="db-hero-link">full view →</a>
         </div>
-        <div class="db-card">
-          <div id="db-top-projects"></div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- ── Activity + Config health ──────────────────────────────────── -->
-    <div class="db-two-col">
-
-      <div>
-        <div class="db-section-header">
-          <span class="db-section-title">ACTIVITY — last 14 days</span>
-          <a href="/analytics.html" class="db-section-link">full analytics →</a>
-        </div>
-        <div class="db-card">
-          <div class="db-chart-wrap">
-            <canvas id="db-activity-chart"></canvas>
+        <div class="db-hero-body">
+          <canvas id="db-waveform" class="db-waveform" height="64"></canvas>
+          <div class="db-hero-stats" id="db-hero-stats">
+            <div class="db-hs-item">
+              <span id="db-hs-tokens" class="db-hs-val">—</span>
+              <span class="db-hs-lbl">tok</span>
+            </div>
+            <div class="db-hs-item">
+              <span id="db-hs-tools" class="db-hs-val">—</span>
+              <span class="db-hs-lbl">tools</span>
+            </div>
+            <div class="db-hs-item">
+              <span id="db-hs-duration" class="db-hs-val">—</span>
+              <span class="db-hs-lbl">active</span>
+            </div>
+            <div class="db-hs-item">
+              <span id="db-hs-project" class="db-hs-val db-hs-val--sm">—</span>
+              <span class="db-hs-lbl">project</span>
+            </div>
           </div>
         </div>
+        <div id="db-live-container" class="db-live-chips"></div>
       </div>
 
-      <div>
+      <!-- ── Stats grid ────────────────────────────────────────────────── -->
+      <section class="focus-secondary">
         <div class="db-section-header">
-          <span class="db-section-title">CONFIG HEALTH</span>
-          <a href="/configs.html" class="db-section-link">full config →</a>
+          <span class="db-section-title">AT A GLANCE</span>
         </div>
-        <div class="db-card">
-          <div id="db-config-health"></div>
+        <div class="db-stats-grid">
+          <div class="db-stat-card db-stat-card--blue">
+            <div class="db-stat-label">Total Sessions</div>
+            <div id="db-total-sessions" class="db-stat-value">—</div>
+          </div>
+          <div class="db-stat-card db-stat-card--green">
+            <div class="db-stat-label">Lines Added</div>
+            <div id="db-total-lines" class="db-stat-value">—</div>
+          </div>
+          <div class="db-stat-card db-stat-card--purple">
+            <div class="db-stat-label">Total Messages</div>
+            <div id="db-total-messages" class="db-stat-value">—</div>
+          </div>
+          <div class="db-stat-card db-stat-card--orange">
+            <div class="db-stat-label">Git Commits</div>
+            <div id="db-total-commits" class="db-stat-value">—</div>
+          </div>
+          <div class="db-stat-card db-stat-card--blue">
+            <div class="db-stat-label">Projects</div>
+            <div id="db-total-projects" class="db-stat-value">—</div>
+          </div>
+          <div class="db-stat-card db-stat-card--green">
+            <div class="db-stat-label">Most Active</div>
+            <div id="db-top-project" class="db-stat-value db-stat-value--sm">—</div>
+          </div>
         </div>
+      </section>
+
+      <!-- ── Recent sessions + Top projects ──────────────────────────── -->
+      <div class="db-two-col focus-hide">
+
+        <div>
+          <div class="db-section-header">
+            <span class="db-section-title">RECENT SESSIONS</span>
+            <a href="/sessions.html" class="db-section-link">all sessions →</a>
+          </div>
+          <div class="db-card">
+            <div id="db-recent-sessions"></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="db-section-header">
+            <span class="db-section-title">TOP PROJECTS</span>
+            <a href="/projects.html" class="db-section-link">all projects →</a>
+          </div>
+          <div class="db-card">
+            <div id="db-top-projects"></div>
+          </div>
+        </div>
+
       </div>
 
-    </div>
+      <!-- ── Activity + Config health ─────────────────────────────────── -->
+      <div class="db-two-col focus-hide">
 
-  </main>
+        <div>
+          <div class="db-section-header">
+            <span class="db-section-title">ACTIVITY — last 14 days</span>
+            <a href="/analytics.html" class="db-section-link">full analytics →</a>
+          </div>
+          <div class="db-card">
+            <div class="db-chart-wrap">
+              <canvas id="db-activity-chart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="db-section-header">
+            <span class="db-section-title">CONFIG HEALTH</span>
+            <a href="/configs.html" class="db-section-link">full config →</a>
+          </div>
+          <div class="db-card">
+            <div id="db-config-health"></div>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="dashboard.js"></script>

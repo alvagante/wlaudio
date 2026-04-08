@@ -4,138 +4,104 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Wlaudio — Projects</title>
-  <link rel="stylesheet" href="projects.css" />
+  <link rel="stylesheet" href="shared.css" />
   <script src="theme.js"></script>
   <link rel="stylesheet" href="themes.css" />
+  <link rel="stylesheet" href="projects.css" />
 </head>
 <body>
 
-  <header>
-    <div class="logo"><a href="/themes.html" class="theme-icon-link">⬡</a> <a href="/" class="theme-icon-link" style="opacity:1;font-weight:inherit">Wlaudio 0.5.0</a></div>
-    <nav class="header-nav">
-      <a href="/" class="nav-link">DASHBOARD</a>
-      <a href="/sessions.html" class="nav-link">SESSIONS</a>
-      <a href="/analytics.html" class="nav-link">ANALYTICS</a>
-      <a href="/projects.html" class="nav-link active">PROJECTS</a>
-      <a href="/configs.html" class="nav-link">CONFIGS</a>
-          <a href="/themes.html" class="nav-link">THEMES</a>
-      <a href="/terminal.html" class="nav-link">TERMINAL</a>
-    </nav>
-  </header>
+  <div class="app-layout">
 
-  <div class="pr-layout">
-
-    <!-- Left: project list -->
-    <aside class="pr-sidebar">
-      <div class="pr-sidebar-header">
-        <span class="pr-sidebar-title">PROJECTS</span>
-        <span id="pr-count" class="pr-count-badge">—</span>
+    <!-- ── Nav sidebar ────────────────────────────────────────────────── -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <a href="/themes.html" class="sb-logo-icon">⬡</a>
+        <span class="sb-logo-text">WLAUDIO</span>
+        <span class="sb-version">0.5.0</span>
       </div>
-      <div class="pr-sort-row">
-        <span class="pr-sort-label">Sort:</span>
-        <button class="pr-sort-btn active" data-sort="recent">Recent</button>
-        <button class="pr-sort-btn" data-sort="sessions">Sessions</button>
-        <button class="pr-sort-btn" data-sort="commits">Commits</button>
-        <button class="pr-sort-btn" data-sort="lines">Lines</button>
-      </div>
-      <ul id="pr-list" class="pr-list"></ul>
+      <nav class="sidebar-nav">
+        <a href="/"               class="sn-link"><span class="sn-icon">▪</span>DASHBOARD</a>
+        <a href="/sessions.html"  class="sn-link"><span class="sn-icon">◈</span>SESSIONS</a>
+        <a href="/analytics.html" class="sn-link"><span class="sn-icon">◫</span>ANALYTICS</a>
+        <a href="/projects.html"  class="sn-link active"><span class="sn-icon">◧</span>PROJECTS</a>
+        <a href="/configs.html"   class="sn-link"><span class="sn-icon">◩</span>CONFIGS</a>
+        <a href="/themes.html"    class="sn-link"><span class="sn-icon">◐</span>THEMES</a>
+        <a href="/terminal.html"  class="sn-link"><span class="sn-icon">▷</span>TERMINAL</a>
+      </nav>
+      <div class="sidebar-bottom"></div>
     </aside>
 
-    <!-- Right: project detail -->
-    <main class="pr-detail">
-      <div id="pr-empty" class="pr-empty">
-        <div class="pr-empty-icon">⬡</div>
-        <div>Select a project to see details</div>
-      </div>
+    <!-- ── Projects master-detail ─────────────────────────────────────── -->
+    <div class="pr-layout">
 
-      <div id="pr-content" class="hidden">
+      <aside class="pr-sidebar">
+        <div class="pr-sidebar-header">
+          <span class="pr-sidebar-title">PROJECTS</span>
+          <span id="pr-count" class="pr-count-badge">—</span>
+        </div>
+        <div class="pr-sort-row">
+          <span class="pr-sort-label">Sort:</span>
+          <button class="pr-sort-btn active" data-sort="recent">Recent</button>
+          <button class="pr-sort-btn" data-sort="sessions">Sessions</button>
+          <button class="pr-sort-btn" data-sort="commits">Commits</button>
+          <button class="pr-sort-btn" data-sort="lines">Lines</button>
+        </div>
+        <ul id="pr-list" class="pr-list"></ul>
+      </aside>
 
-        <div class="pr-detail-header">
-          <div>
-            <div id="pr-name" class="pr-detail-name"></div>
-            <div id="pr-path" class="pr-detail-path"></div>
-          </div>
-          <div style="display:flex;align-items:center;gap:1rem">
-            <div id="pr-last-active" class="pr-detail-age"></div>
-            <a id="pr-launch-btn" href="#" class="pr-launch-btn">Launch Claude ›</a>
-          </div>
+      <main class="pr-detail">
+        <div id="pr-empty" class="pr-empty">
+          <div class="pr-empty-icon">⬡</div>
+          <div>Select a project to see details</div>
         </div>
 
-        <!-- Summary cards -->
-        <div class="pr-cards">
-          <div class="pr-card">
-            <div class="pr-card-label">Sessions</div>
-            <div id="pr-sessions" class="pr-card-value"></div>
-          </div>
-          <div class="pr-card">
-            <div class="pr-card-label">Total Duration</div>
-            <div id="pr-duration" class="pr-card-value"></div>
-            <div id="pr-avg-duration" class="pr-card-sub"></div>
-          </div>
-          <div class="pr-card">
-            <div class="pr-card-label">Git Commits</div>
-            <div id="pr-commits" class="pr-card-value"></div>
-            <div id="pr-pushes" class="pr-card-sub"></div>
-          </div>
-          <div class="pr-card">
-            <div class="pr-card-label">Lines Changed</div>
-            <div id="pr-lines-add" class="pr-card-value green"></div>
-            <div id="pr-lines-rem" class="pr-card-sub red"></div>
-          </div>
-          <div class="pr-card">
-            <div class="pr-card-label">Tool Calls</div>
-            <div id="pr-tools" class="pr-card-value"></div>
-            <div id="pr-tool-errors" class="pr-card-sub"></div>
-          </div>
-          <div class="pr-card">
-            <div class="pr-card-label">Files Modified</div>
-            <div id="pr-files" class="pr-card-value"></div>
-          </div>
-        </div>
+        <div id="pr-content" class="hidden">
 
-        <!-- Two-column: languages + outcomes -->
-        <div class="pr-two-col">
-
-          <div class="pr-section">
-            <div class="pr-section-title">Languages</div>
-            <div id="pr-lang-bars"></div>
-          </div>
-
-          <div class="pr-section">
-            <div class="pr-section-title">Session Outcomes</div>
-            <div id="pr-outcome-wrap" class="pr-outcome-wrap">
-              <canvas id="pr-outcome-chart"></canvas>
+          <div class="pr-detail-header">
+            <div>
+              <div id="pr-name" class="pr-detail-name"></div>
+              <div id="pr-path" class="pr-detail-path"></div>
             </div>
-            <div id="pr-outcome-legend" class="pr-legend"></div>
+            <div style="display:flex;align-items:center;gap:1rem">
+              <div id="pr-last-active" class="pr-detail-age"></div>
+              <a id="pr-launch-btn" href="#" class="pr-launch-btn">Launch Claude ›</a>
+            </div>
           </div>
 
-        </div>
+          <div class="pr-cards">
+            <div class="pr-card"><div class="pr-card-label">Sessions</div><div id="pr-sessions" class="pr-card-value"></div></div>
+            <div class="pr-card"><div class="pr-card-label">Total Duration</div><div id="pr-duration" class="pr-card-value"></div><div id="pr-avg-duration" class="pr-card-sub"></div></div>
+            <div class="pr-card"><div class="pr-card-label">Git Commits</div><div id="pr-commits" class="pr-card-value"></div><div id="pr-pushes" class="pr-card-sub"></div></div>
+            <div class="pr-card"><div class="pr-card-label">Lines Changed</div><div id="pr-lines-add" class="pr-card-value green"></div><div id="pr-lines-rem" class="pr-card-sub red"></div></div>
+            <div class="pr-card"><div class="pr-card-label">Tool Calls</div><div id="pr-tools" class="pr-card-value"></div><div id="pr-tool-errors" class="pr-card-sub"></div></div>
+            <div class="pr-card"><div class="pr-card-label">Files Modified</div><div id="pr-files" class="pr-card-value"></div></div>
+          </div>
 
-        <!-- Two-column: top tools + goal categories -->
-        <div class="pr-two-col">
+          <div class="pr-two-col">
+            <div class="pr-section"><div class="pr-section-title">Languages</div><div id="pr-lang-bars"></div></div>
+            <div class="pr-section">
+              <div class="pr-section-title">Session Outcomes</div>
+              <div id="pr-outcome-wrap" class="pr-outcome-wrap"><canvas id="pr-outcome-chart"></canvas></div>
+              <div id="pr-outcome-legend" class="pr-legend"></div>
+            </div>
+          </div>
+
+          <div class="pr-two-col">
+            <div class="pr-section"><div class="pr-section-title">Top Tools</div><div id="pr-tool-bars"></div></div>
+            <div class="pr-section"><div class="pr-section-title">Goal Categories</div><div id="pr-goal-bars"></div></div>
+          </div>
 
           <div class="pr-section">
-            <div class="pr-section-title">Top Tools</div>
-            <div id="pr-tool-bars"></div>
-          </div>
-
-          <div class="pr-section">
-            <div class="pr-section-title">Goal Categories</div>
-            <div id="pr-goal-bars"></div>
+            <div class="pr-section-title">Sessions <span id="pr-session-list-count" class="pr-section-badge"></span></div>
+            <div id="pr-session-list"></div>
           </div>
 
         </div>
+      </main>
 
-        <!-- Session list -->
-        <div class="pr-section">
-          <div class="pr-section-title">Sessions <span id="pr-session-list-count" class="pr-section-badge"></span></div>
-          <div id="pr-session-list"></div>
-        </div>
-
-      </div><!-- /#pr-content -->
-    </main>
-
-  </div><!-- /.pr-layout -->
+    </div>
+  </div>
 
   <div id="pr-loading" class="pr-loading">LOADING…</div>
 

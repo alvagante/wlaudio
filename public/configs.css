@@ -1,65 +1,11 @@
-/* ── Catppuccin Mocha palette ─────────────────────────────────────────────── */
-:root {
-  --bg:        #1e1e2e;
-  --surface:   #181825;
-  --surface2:  #11111b;
-  --overlay:   #313244;
-  --border:    #45475a;
-  --text:      #cdd6f4;
-  --subtext:   #a6adc8;
-  --dim:       #585b70;
+/* ── Configs page — page-specific styles (palette + sidebar from shared.css) */
 
-  --blue:      #89b4fa;
-  --green:     #a6e3a1;
-  --yellow:    #f9e2af;
-  --orange:    #fab387;
-  --red:       #f38ba8;
-  --purple:    #cba6f7;
-  --teal:      #94e2d5;
-
-  --header-h: 3rem;
-  --radius: 8px;
-}
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; }
-
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
-  font-size: 13px;
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
-/* ── Header ──────────────────────────────────────────────────────────────── */
-header {
-  background: var(--surface2);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 1.25rem;
-  height: var(--header-h);
-  flex-shrink: 0;
-  z-index: 10;
-}
-
-.logo { font-weight: 700; font-size: 0.9rem; letter-spacing: 0.1em; color: var(--blue); }
-.header-nav { display: flex; gap: 1.25rem; }
-.nav-link { color: var(--dim); text-decoration: none; font-size: 0.7rem; letter-spacing: 0.1em; font-weight: 600; transition: color 0.15s; }
-.nav-link:hover { color: var(--blue); }
-.nav-link.active { color: var(--blue); }
-
-/* ── Loading ─────────────────────────────────────────────────────────────── */
+/* ── Main layout ─────────────────────────────────────────────────────────── */
 .cfg-loading {
   display: flex; align-items: center; justify-content: center;
   height: 200px; color: var(--dim); font-size: 0.8rem; letter-spacing: 0.1em;
 }
 
-/* ── Main layout ─────────────────────────────────────────────────────────── */
 .cfg-main {
   flex: 1;
   overflow-y: auto;
@@ -71,251 +17,127 @@ header {
 
 /* ── Page title ──────────────────────────────────────────────────────────── */
 .cfg-page-title {
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  color: var(--blue);
-  margin-bottom: 0.75rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  font-size: 0.65rem; font-weight: 700; letter-spacing: 0.15em;
+  color: var(--blue); margin-bottom: 0.75rem;
+  display: flex; align-items: center; gap: 0.75rem;
 }
-
-.cfg-path {
-  font-size: 0.62rem;
-  font-weight: 400;
-  color: var(--dim);
-  letter-spacing: 0.05em;
-}
+.cfg-path { font-size: 0.62rem; font-weight: 400; color: var(--dim); letter-spacing: 0.05em; }
 
 /* ── Badge ───────────────────────────────────────────────────────────────── */
 .cfg-badge {
-  background: var(--overlay);
-  color: var(--subtext);
-  font-size: 0.58rem;
-  font-weight: 600;
-  padding: 0.1rem 0.45rem;
-  border-radius: 8px;
+  background: var(--overlay); color: var(--subtext);
+  font-size: 0.58rem; font-weight: 600;
+  padding: 0.1rem 0.45rem; border-radius: 8px;
 }
 
 /* ── Section ─────────────────────────────────────────────────────────────── */
 .cfg-section {
-  background: var(--surface);
-  border: 1px solid var(--overlay);
-  border-radius: var(--radius);
-  padding: 1rem 1.25rem;
-  margin-bottom: 0.85rem;
+  background: var(--surface); border: 1px solid var(--overlay);
+  border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 0.85rem;
 }
-
 .cfg-section-title {
-  font-size: 0.6rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  color: var(--dim);
-  text-transform: uppercase;
-  margin-bottom: 0.85rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  font-size: 0.6rem; font-weight: 600; letter-spacing: 0.12em;
+  color: var(--dim); text-transform: uppercase; margin-bottom: 0.85rem;
+  display: flex; align-items: center; gap: 0.5rem;
 }
 
 .cfg-two-col {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.85rem;
-  margin-bottom: 0.85rem;
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 0.85rem; margin-bottom: 0.85rem;
 }
-
 @media (max-width: 900px) { .cfg-two-col { grid-template-columns: 1fr; } }
 .cfg-two-col .cfg-section { margin-bottom: 0; }
 
 /* ── Hooks table ─────────────────────────────────────────────────────────── */
-.cfg-hook-event {
-  margin-bottom: 0.75rem;
-}
-
+.cfg-hook-event { margin-bottom: 0.75rem; }
 .cfg-hook-event:last-child { margin-bottom: 0; }
-
 .cfg-hook-event-label {
-  font-size: 0.62rem;
-  font-weight: 700;
-  color: var(--purple);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  margin-bottom: 0.4rem;
+  font-size: 0.62rem; font-weight: 700; color: var(--purple);
+  letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.4rem;
 }
-
 .cfg-hook-row {
-  display: grid;
-  grid-template-columns: 140px 1fr;
-  gap: 0.5rem;
-  align-items: start;
-  padding: 0.35rem 0;
+  display: grid; grid-template-columns: 140px 1fr;
+  gap: 0.5rem; align-items: start; padding: 0.35rem 0;
   border-bottom: 1px solid var(--surface2);
 }
-
 .cfg-hook-row:last-child { border-bottom: none; }
-
-.cfg-hook-matcher {
-  font-size: 0.68rem;
-  color: var(--yellow);
-  font-style: italic;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
+.cfg-hook-matcher { font-size: 0.68rem; color: var(--yellow); font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cfg-hook-commands { display: flex; flex-direction: column; gap: 0.25rem; }
-
-.cfg-hook-cmd {
-  font-size: 0.67rem;
-  color: var(--subtext);
-  word-break: break-all;
-  line-height: 1.4;
-}
-
+.cfg-hook-cmd { font-size: 0.67rem; color: var(--subtext); word-break: break-all; line-height: 1.4; }
 .cfg-hook-cmd::before { content: '$ '; color: var(--dim); }
 
 /* ── Permission rules ────────────────────────────────────────────────────── */
 .cfg-rule-list { display: flex; flex-direction: column; gap: 0.3rem; }
-
 .cfg-rule {
-  font-size: 0.7rem;
-  padding: 0.3rem 0.6rem;
-  border-radius: 4px;
-  word-break: break-all;
-  line-height: 1.4;
+  font-size: 0.7rem; padding: 0.3rem 0.6rem;
+  border-radius: 4px; word-break: break-all; line-height: 1.4;
 }
-
-.cfg-rule.allow { background: #a6e3a111; color: var(--green); border-left: 2px solid var(--green); }
-.cfg-rule.deny  { background: #f38ba811; color: var(--red);   border-left: 2px solid var(--red); }
+.cfg-rule.allow { background: color-mix(in srgb, var(--green) 7%, transparent); color: var(--green); border-left: 2px solid var(--green); }
+.cfg-rule.deny  { background: color-mix(in srgb, var(--red)   7%, transparent); color: var(--red);   border-left: 2px solid var(--red); }
 
 /* ── MCP servers ─────────────────────────────────────────────────────────── */
 .cfg-mcp-row {
-  display: grid;
-  grid-template-columns: 180px 1fr;
-  gap: 0.5rem;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid var(--surface2);
-  align-items: start;
+  display: grid; grid-template-columns: 180px 1fr;
+  gap: 0.5rem; padding: 0.5rem 0;
+  border-bottom: 1px solid var(--surface2); align-items: start;
 }
-
 .cfg-mcp-row:last-child { border-bottom: none; }
-
-.cfg-mcp-name { font-size: 0.72rem; font-weight: 600; color: var(--teal); }
+.cfg-mcp-name   { font-size: 0.72rem; font-weight: 600; color: var(--teal); }
 .cfg-mcp-detail { font-size: 0.67rem; color: var(--subtext); word-break: break-all; line-height: 1.5; }
-.cfg-mcp-key { color: var(--dim); font-size: 0.62rem; }
+.cfg-mcp-key    { color: var(--dim); font-size: 0.62rem; }
 
 /* ── Plugins ─────────────────────────────────────────────────────────────── */
 .cfg-plugin-row {
-  display: grid;
-  grid-template-columns: 200px 1fr 120px;
-  gap: 0.75rem;
-  padding: 0.55rem 0;
-  border-bottom: 1px solid var(--surface2);
-  align-items: start;
+  display: grid; grid-template-columns: 200px 1fr 120px;
+  gap: 0.75rem; padding: 0.55rem 0;
+  border-bottom: 1px solid var(--surface2); align-items: start;
 }
-
 .cfg-plugin-row:last-child { border-bottom: none; }
-
 .cfg-plugin-name { font-size: 0.72rem; font-weight: 600; color: var(--blue); }
 .cfg-plugin-text { font-size: 0.67rem; color: var(--subtext); }
 .cfg-plugin-date { font-size: 0.62rem; color: var(--dim); text-align: right; }
 
 /* ── CLAUDE.md expandable ────────────────────────────────────────────────── */
-.cfg-expandable {
-  cursor: pointer;
-  user-select: none;
-  justify-content: space-between;
-}
-
+.cfg-expandable { cursor: pointer; user-select: none; justify-content: space-between; }
 .cfg-expandable:hover { color: var(--subtext); }
-
-.cfg-expand-icon {
-  font-size: 0.55rem;
-  transition: transform 0.2s;
-  color: var(--dim);
-}
-
+.cfg-expand-icon { font-size: 0.55rem; transition: transform 0.2s; color: var(--dim); }
 .cfg-expandable.open .cfg-expand-icon { transform: rotate(90deg); }
-
 .cfg-md-pre {
-  background: var(--surface2);
-  border: 1px solid var(--overlay);
-  border-radius: 6px;
-  padding: 1rem;
-  font-size: 0.7rem;
-  line-height: 1.6;
-  color: var(--subtext);
-  white-space: pre-wrap;
-  word-break: break-word;
-  max-height: 500px;
-  overflow-y: auto;
-  margin-top: 0.75rem;
+  background: var(--surface2); border: 1px solid var(--overlay);
+  border-radius: 6px; padding: 1rem; font-size: 0.7rem; line-height: 1.6;
+  color: var(--subtext); white-space: pre-wrap; word-break: break-word;
+  max-height: 500px; overflow-y: auto; margin-top: 0.75rem;
 }
 
 /* ── Per-project section ─────────────────────────────────────────────────── */
 .cfg-project-block {
-  background: var(--surface);
-  border: 1px solid var(--overlay);
-  border-radius: var(--radius);
-  margin-bottom: 0.85rem;
-  overflow: hidden;
+  background: var(--surface); border: 1px solid var(--overlay);
+  border-radius: var(--radius); margin-bottom: 0.85rem; overflow: hidden;
 }
-
 .cfg-project-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.85rem 1.25rem;
-  cursor: pointer;
-  user-select: none;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.85rem 1.25rem; cursor: pointer; user-select: none;
   transition: background 0.1s;
 }
-
 .cfg-project-header:hover { background: var(--overlay); }
-
-.cfg-project-name { font-size: 0.8rem; font-weight: 600; color: var(--text); }
-.cfg-project-path { font-size: 0.62rem; color: var(--dim); margin-top: 0.15rem; }
-
+.cfg-project-name  { font-size: 0.8rem; font-weight: 600; color: var(--text); }
+.cfg-project-path  { font-size: 0.62rem; color: var(--dim); margin-top: 0.15rem; }
 .cfg-project-badges { display: flex; gap: 0.4rem; align-items: center; flex-shrink: 0; }
-
 .cfg-tag {
-  font-size: 0.58rem;
-  font-weight: 600;
-  padding: 0.15rem 0.45rem;
-  border-radius: 4px;
-  letter-spacing: 0.05em;
+  font-size: 0.58rem; font-weight: 600; padding: 0.15rem 0.45rem;
+  border-radius: 4px; letter-spacing: 0.05em;
 }
+.cfg-tag.hooks    { background: color-mix(in srgb, var(--purple) 13%, transparent); color: var(--purple); }
+.cfg-tag.perms    { background: color-mix(in srgb, var(--blue)   13%, transparent); color: var(--blue); }
+.cfg-tag.md       { background: color-mix(in srgb, var(--green)  13%, transparent); color: var(--green); }
+.cfg-tag.local-md { background: color-mix(in srgb, var(--yellow) 13%, transparent); color: var(--yellow); }
 
-.cfg-tag.hooks    { background: #cba6f722; color: var(--purple); }
-.cfg-tag.perms    { background: #89b4fa22; color: var(--blue); }
-.cfg-tag.md       { background: #a6e3a122; color: var(--green); }
-.cfg-tag.local-md { background: #f9e2af22; color: var(--yellow); }
-
-.cfg-project-body {
-  border-top: 1px solid var(--overlay);
-  padding: 1rem 1.25rem;
-}
-
+.cfg-project-body { border-top: 1px solid var(--overlay); padding: 1rem 1.25rem; }
 .cfg-sub-title {
-  font-size: 0.58rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  color: var(--dim);
-  text-transform: uppercase;
-  margin: 0.75rem 0 0.4rem;
+  font-size: 0.58rem; font-weight: 700; letter-spacing: 0.12em;
+  color: var(--dim); text-transform: uppercase; margin: 0.75rem 0 0.4rem;
 }
-
 .cfg-sub-title:first-child { margin-top: 0; }
 
 /* ── Empty state ─────────────────────────────────────────────────────────── */
-.cfg-empty {
-  color: var(--dim);
-  font-size: 0.72rem;
-  text-align: center;
-  padding: 1rem 0;
-}
-
-/* ── Utility ─────────────────────────────────────────────────────────────── */
-.hidden { display: none !important; }
+.cfg-empty { color: var(--dim); font-size: 0.72rem; text-align: center; padding: 1rem 0; }

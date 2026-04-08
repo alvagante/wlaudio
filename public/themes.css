@@ -7,7 +7,49 @@
 }
 .theme-icon-link:hover { opacity: 1; }
 
-/* ── Theme overrides — loaded after page CSS, higher specificity via :root[data-theme] ── */
+/* ── Theme overrides — loaded after shared.css, higher specificity via :root[data-theme] ── */
+
+/* ── High Contrast (default — explicit selection is a no-op) ─────────────── */
+:root[data-theme="high-contrast"] {
+  --bg:       #0B0E14;
+  --surface:  #12161F;
+  --surface2: #0e1118;
+  --overlay:  #1c2233;
+  --border:   #1e2a3a;
+  --text:     #e2e8f0;
+  --subtext:  #8899aa;
+  --dim:      #445566;
+  --blue:     #00D1FF;
+  --green:    #39FF14;
+  --orange:   #FFAC1C;
+  --red:      #ff4d6a;
+  --purple:   #b57dff;
+  --yellow:   #f9e2af;
+  --teal:     #00e5cc;
+  --pink:     #ff79c6;
+  --sky:      #00D1FF;
+}
+
+/* ── Catppuccin Mocha ────────────────────────────────────────────────────── */
+:root[data-theme="mocha"] {
+  --bg:       #1e1e2e;
+  --surface:  #181825;
+  --surface2: #11111b;
+  --overlay:  #313244;
+  --border:   #45475a;
+  --text:     #cdd6f4;
+  --subtext:  #a6adc8;
+  --dim:      #585b70;
+  --blue:     #89b4fa;
+  --green:    #a6e3a1;
+  --yellow:   #f9e2af;
+  --orange:   #fab387;
+  --red:      #f38ba8;
+  --purple:   #cba6f7;
+  --pink:     #f5c2e7;
+  --teal:     #94e2d5;
+  --sky:      #89dceb;
+}
 
 /* ── Catppuccin Macchiato ─────────────────────────────────────────────────── */
 :root[data-theme="macchiato"] {

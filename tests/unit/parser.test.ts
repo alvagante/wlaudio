@@ -14,6 +14,22 @@ describe('encodePath', () => {
   it('handles empty string', () => {
     expect(encodePath('')).toBe('');
   });
+
+  it('replaces dots with dashes (e.g. www.lab42.it)', () => {
+    expect(encodePath('/Users/al/Documents/GITHUB/www.lab42.it')).toBe('-Users-al-Documents-GITHUB-www-lab42-it');
+  });
+
+  it('replaces @ with dashes (e.g. Google Drive paths)', () => {
+    expect(encodePath('/Users/al/Library/CloudStorage/GoogleDrive-al@lab42.it/My Drive/LAB42')).toBe('-Users-al-Library-CloudStorage-GoogleDrive-al-lab42-it-My-Drive-LAB42');
+  });
+
+  it('replaces spaces with dashes', () => {
+    expect(encodePath('/Users/al/My Projects/foo bar')).toBe('-Users-al-My-Projects-foo-bar');
+  });
+
+  it('preserves existing hyphens', () => {
+    expect(encodePath('/Users/al/my-project')).toBe('-Users-al-my-project');
+  });
 });
 
 describe('computeSessionStats', () => {
