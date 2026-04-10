@@ -1,9 +1,53 @@
+// ── Dashboard — High Contrast v2 ──────────────────────────────────────────
+
+// ── Focus Mode ────────────────────────────────────────────────────────────
+
+function initFocusMode() {
+  const btn    = document.getElementById('focus-btn');
+  const layout = document.querySelector('.app-layout');
+  if (!btn || !layout) return;
+
+  btn.addEventListener('click', () => {
+    const isOn = layout.classList.toggle('focus-on');
+    btn.textContent = isOn ? 'ON' : 'OFF';
+    btn.setAttribute('aria-pressed', String(isOn));
+  });
+}
+
+// ── Hero stats ────────────────────────────────────────────────────────────
+
+function renderHeroStats() {
+  // Find the most active session (most tokens)
+  let best = null, bestSt = null, bestTokens = -1;
+  for (const [id, session] of state.sessions) {
+    const st  = state.stats.get(id);
+    const tok = st ? (st.totalTokens?.inputTokens ?? 0) + (st.totalTokens?.outputTokens ?? 0) : 0;
+    if (tok > bestTokens) { bestTokens = tok; best = session; bestSt = st; }
+  }
+
+  const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val ?? '—'; };
+
+  if (best && bestSt) {
+    setText('db-hs-tokens',   fmtTokens(bestTokens));
+    setText('db-hs-tools',    fmtNum(bestSt.toolCallCount));
+    setText('db-hs-duration', fmtDuration(bestSt.durationMs));
+    setText('db-hs-project',  projectName(best.cwd));
+  } else {
+    ['db-hs-tokens', 'db-hs-tools', 'db-hs-duration', 'db-hs-project'].forEach(id => setText(id, '—'));
+  }
+
+  // Live badge count
+  const countEl = document.getElementById('db-live-count');
+  if (countEl) countEl.textContent = state.sessions.size > 0 ? String(state.sessions.size) : '';
+}
+
 // ── Dashboard ─────────────────────────────────────────────────────────────
 
 // ── State ─────────────────────────────────────────────────────────────────
 const state = {
   sessions:    new Map(),   // sessionId → ActiveSession (active)
   stats:       new Map(),   // sessionId → SessionStats
+  turns:       new Map(),   // sessionId → Turn[]
   globalStats: null,
   projects:    [],
   configs:     null,
@@ -84,9 +128,12 @@ function setConn(up) {
 function dispatch({ type, data }) {
   switch (type) {
     case 'initial_state':
-      state.sessions.clear(); state.stats.clear();
+      state.sessions.clear(); state.stats.clear(); state.turns.clear();
       for (const s of data.activeSessions)                      state.sessions.set(s.sessionId, s);
       for (const [id, st] of Object.entries(data.sessionStats)) state.stats.set(id, st);
+      if (data.turns) {
+        for (const [id, ts] of Object.entries(data.turns)) state.turns.set(id, ts);
+      }
       state.globalStats = data.globalStats;
       renderLive();
       renderStats();
@@ -100,10 +147,15 @@ function dispatch({ type, data }) {
       break;
     case 'session_removed':
       state.sessions.delete(data);
+      state.turns.delete(data);
       renderLive();
       break;
     case 'turns_updated':
       state.stats.set(data.sessionId, data.stats);
+      if (data.newTurns?.length) {
+        const existing = state.turns.get(data.sessionId) ?? [];
+        state.turns.set(data.sessionId, [...existing, ...data.newTurns]);
+      }
       renderLive();
       break;
     case 'stats_updated':
@@ -116,11 +168,72 @@ function dispatch({ type, data }) {
 
 // ── Live sessions ─────────────────────────────────────────────────────────
 
+const TOOL_ICON = {
+  Bash:       '▶',
+  Edit:       '✎',
+  Write:      '✎',
+  Read:       '◎',
+  Glob:       '⊕',
+  Grep:       '⊕',
+  WebSearch:  '⊞',
+  WebFetch:   '⊞',
+  Agent:      '◈',
+  TodoWrite:  '☑',
+};
+
+function toolIcon(name) {
+  return TOOL_ICON[name] ?? '◆';
+}
+
+function latestActivities(turns, limit = 4) {
+  if (!turns?.length) return [];
+  const activities = [];
+  for (let i = turns.length - 1; i >= 0 && activities.length < limit; i--) {
+    const t = turns[i];
+    if (t.type !== 'assistant') continue;
+    for (const tc of (t.toolCalls ?? [])) {
+      if (activities.length >= limit) break;
+      activities.push({ name: tc.name, ts: tc.timestamp, isError: tc.result?.isError ?? false });
+    }
+  }
+  return activities;
+}
+
+function renderSessionPanel(id, session, st, turns) {
+  const tok  = st ? fmtTokens((st.totalTokens?.inputTokens ?? 0) + (st.totalTokens?.outputTokens ?? 0)) : '—';
+  const dur  = st ? fmtDuration(st.durationMs) : '—';
+  const tools = st ? fmtNum(st.toolCallCount) : '—';
+  const name  = projectName(session.cwd);
+  const acts  = latestActivities(turns);
+
+  const actHtml = acts.length
+    ? acts.map(a => `
+        <div class="db-sp-act${a.isError ? ' db-sp-act--err' : ''}">
+          <span class="db-sp-act-icon">${toolIcon(a.name)}</span>
+          <span class="db-sp-act-name">${escHtml(a.name)}</span>
+        </div>`).join('')
+    : `<div class="db-sp-act db-sp-act--dim">waiting…</div>`;
+
+  return `
+    <a class="db-session-panel" href="/sessions.html?session=${encodeURIComponent(id)}">
+      <div class="db-sp-header">
+        <span class="db-sp-pulse"></span>
+        <span class="db-sp-name">${escHtml(name)}</span>
+        <span class="db-sp-kind">${escHtml(session.kind ?? '')}</span>
+      </div>
+      <div class="db-sp-stats">
+        <div class="db-sp-stat"><span class="db-sp-val">${tok}</span><span class="db-sp-lbl">tok</span></div>
+        <div class="db-sp-stat"><span class="db-sp-val">${tools}</span><span class="db-sp-lbl">tools</span></div>
+        <div class="db-sp-stat"><span class="db-sp-val">${dur}</span><span class="db-sp-lbl">active</span></div>
+      </div>
+      <div class="db-sp-acts">${actHtml}</div>
+    </a>`;
+}
+
 function renderLive() {
   const container = document.getElementById('db-live-container');
-  const countEl   = document.getElementById('db-live-count');
 
-  countEl.textContent = state.sessions.size || '';
+  renderHeroStats();
 
   if (state.sessions.size === 0) {
     container.innerHTML = `
@@ -131,26 +244,11 @@ function renderLive() {
     return;
   }
 
-  container.innerHTML = '';
+  let html = '';
   for (const [id, session] of state.sessions) {
-    const st  = state.stats.get(id);
-    const tok = st ? fmtTokens((st.totalTokens?.inputTokens ?? 0) + (st.totalTokens?.outputTokens ?? 0)) : '—';
-    const dur = st ? fmtDuration(st.durationMs) : '—';
-    const tools = st ? fmtNum(st.toolCallCount) : '—';
-
-    const card = document.createElement('a');
-    card.className = 'db-session-card';
-    card.href = '/sessions.html';
-    card.innerHTML = `
-      <div class="db-sc-name">${escHtml(projectName(session.cwd))}</div>
-      <div class="db-sc-meta">${escHtml(truncate(session.cwd, 50))} · ${timeAgo(session.startedAt)}</div>
-      <div class="db-sc-stats">
-        <span><span class="db-sc-stat-val">${tok}</span> tok</span>
-        <span><span class="db-sc-stat-val">${tools}</span> tools</span>
-        <span><span class="db-sc-stat-val">${dur}</span></span>
-      </div>`;
-    container.appendChild(card);
+    html += renderSessionPanel(id, session, state.stats.get(id), state.turns.get(id));
   }
+  container.innerHTML = html;
 }
 
 // ── Summary stats ─────────────────────────────────────────────────────────
@@ -201,19 +299,24 @@ function renderActivityChart() {
     type: 'bar',
     data: {
       labels,
-      datasets: [{ data: msgs, backgroundColor: '#89b4fa44', borderColor: '#89b4fa', borderWidth: 1, borderRadius: 2 }],
+      datasets: [{ data: msgs, backgroundColor: '#00D1FF28', borderColor: '#00D1FF', borderWidth: 1, borderRadius: 3 }],
     },
     options: {
       responsive: true, maintainAspectRatio: false, animation: false,
       plugins: { legend: { display: false }, tooltip: {
+        backgroundColor: '#12161F',
+        borderColor: '#1e2a3a',
+        borderWidth: 1,
+        titleColor: '#8899aa',
+        bodyColor: '#00D1FF',
         callbacks: {
           title: (items) => last14[items[0].dataIndex]?.date ?? '',
           label: (item)  => ` ${item.parsed.y} messages`,
         },
       }},
       scales: {
-        x: { grid: { color: '#31324422' }, ticks: { color: '#585b70', font: { size: 10 } } },
-        y: { grid: { color: '#31324444' }, ticks: { color: '#585b70', font: { size: 10 } }, beginAtZero: true },
+        x: { grid: { color: '#1c223320' }, ticks: { color: '#445566', font: { size: 10 } } },
+        y: { grid: { color: '#1c223340' }, ticks: { color: '#445566', font: { size: 10 } }, beginAtZero: true },
       },
     },
   });
@@ -245,12 +348,12 @@ function renderRecentSessions() {
     const badge = s.outcome ? `<span class="db-sr-outcome ${cls}">${escHtml(s.outcome.replace(/_/g, ' '))}</span>` : '';
     const label = truncate(s.briefSummary || s.firstPrompt, 60);
     return `
-      <div class="db-session-row">
+      <a class="db-session-row" href="/sessions.html?session=${encodeURIComponent(s.sessionId)}">
         <span class="db-sr-date">${fmtDate(s.startTime)}</span>
         <span class="db-sr-project">${escHtml(s.projectName)}</span>
         <span class="db-sr-prompt" title="${escHtml(s.briefSummary || s.firstPrompt)}">${escHtml(label)}</span>
         ${badge}
-      </div>`;
+      </a>`;
   }).join('');
 }
 
@@ -354,6 +457,9 @@ async function init() {
   renderRecentSessions();
   renderTopProjects();
   renderConfigHealth();
+
+  // Focus mode toggle
+  initFocusMode();
 
   // WebSocket for live data
   connect();

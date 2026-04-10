@@ -13,7 +13,7 @@ const HOME = process.env['HOME'] ?? '/Users/al';
 export const CLAUDE_DIR = join(HOME, '.claude');
 
 export function encodePath(p: string): string {
-  return p.replace(/\//g, '-');
+  return p.replace(/[^a-zA-Z0-9-]/g, '-');
 }
 
 export function getSessionFilePath(session: ActiveSession): string {

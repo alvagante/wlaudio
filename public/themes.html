@@ -4,9 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Wlaudio — Themes</title>
+  <link rel="stylesheet" href="shared.css" />
   <script src="theme.js"></script>
-  <link rel="stylesheet" href="analytics.css" />
   <link rel="stylesheet" href="themes.css" />
+  <link rel="stylesheet" href="analytics.css" />
   <style>
     .th-grid {
       display: grid;
@@ -14,7 +15,6 @@
       gap: 1rem;
       margin-top: 1rem;
     }
-
     .th-card {
       border: 2px solid var(--overlay);
       border-radius: var(--radius);
@@ -22,35 +22,17 @@
       cursor: pointer;
       transition: border-color 0.15s, transform 0.1s;
     }
-
-    .th-card:hover   { border-color: var(--border); transform: translateY(-1px); }
-    .th-card.active  { border-color: var(--blue); }
-
+    .th-card:hover  { border-color: var(--border); transform: translateY(-1px); }
+    .th-card.active { border-color: var(--blue); }
     .th-preview {
       padding: 0.75rem 1rem;
       display: flex;
       flex-direction: column;
       gap: 0.4rem;
     }
-
-    .th-preview-bar {
-      height: 8px;
-      border-radius: 4px;
-    }
-
-    .th-swatch-row {
-      display: flex;
-      gap: 4px;
-      margin-top: 0.25rem;
-    }
-
-    .th-swatch {
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
+    .th-preview-bar { height: 8px; border-radius: 4px; }
+    .th-swatch-row  { display: flex; gap: 4px; margin-top: 0.25rem; }
+    .th-swatch      { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; }
     .th-card-footer {
       background: var(--surface2);
       padding: 0.6rem 1rem;
@@ -58,60 +40,65 @@
       align-items: center;
       justify-content: space-between;
     }
-
-    .th-name {
-      font-size: 0.72rem;
-      font-weight: 600;
-      color: var(--text);
-    }
-
+    .th-name { font-size: 0.72rem; font-weight: 600; color: var(--text); }
     .th-active-badge {
-      font-size: 0.58rem;
-      font-weight: 600;
-      background: var(--blue);
-      color: var(--bg);
-      padding: 0.1rem 0.5rem;
-      border-radius: 8px;
-      letter-spacing: 0.05em;
+      font-size: 0.58rem; font-weight: 600;
+      background: var(--blue); color: var(--bg);
+      padding: 0.1rem 0.5rem; border-radius: 8px; letter-spacing: 0.05em;
     }
-
-    .th-sub {
-      font-size: 0.62rem;
-      color: var(--dim);
-    }
+    .th-sub { font-size: 0.62rem; color: var(--dim); }
   </style>
 </head>
 <body>
 
-  <header>
-    <div class="logo"><a href="/themes.html" class="theme-icon-link">⬡</a> <a href="/" class="theme-icon-link" style="opacity:1;font-weight:inherit">Wlaudio 0.4.0</a></div>
-    <nav class="header-nav">
-      <a href="/" class="nav-link">DASHBOARD</a>
-      <a href="/sessions.html" class="nav-link">SESSIONS</a>
-      <a href="/analytics.html" class="nav-link">ANALYTICS</a>
-      <a href="/projects.html" class="nav-link">PROJECTS</a>
-      <a href="/configs.html" class="nav-link">CONFIGS</a>
-      <a href="/themes.html" class="nav-link active">THEMES</a>
-    </nav>
-  </header>
+  <div class="app-layout">
 
-  <main class="an-main">
+    <!-- ── Nav sidebar ────────────────────────────────────────────────── -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <a href="/themes.html" class="sb-logo-icon">⬡</a>
+        <span class="sb-logo-text">WLAUDIO</span>
+        <span class="sb-version">0.5.0</span>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="/"               class="sn-link"><span class="sn-icon">▪</span>DASHBOARD</a>
+        <a href="/sessions.html"  class="sn-link"><span class="sn-icon">◈</span>SESSIONS</a>
+        <a href="/analytics.html" class="sn-link"><span class="sn-icon">◫</span>ANALYTICS</a>
+        <a href="/projects.html"  class="sn-link"><span class="sn-icon">◧</span>PROJECTS</a>
+        <a href="/configs.html"   class="sn-link"><span class="sn-icon">◩</span>CONFIGS</a>
+        <a href="/themes.html"    class="sn-link active"><span class="sn-icon">◐</span>THEMES</a>
+        <a href="/terminal.html"  class="sn-link"><span class="sn-icon">▷</span>TERMINAL</a>
+      </nav>
+      <div class="sidebar-bottom"></div>
+    </aside>
 
-    <div style="margin-bottom:1.5rem">
-      <div class="an-section-title" style="font-size:0.8rem;margin-bottom:0.3rem">Color Themes</div>
-      <div style="font-size:0.7rem;color:var(--dim)">Click a theme to apply it. Your choice is saved in the browser.</div>
-    </div>
+    <!-- ── Themes content ────────────────────────────────────────────── -->
+    <main class="an-main">
 
-    <div class="th-grid" id="th-grid"></div>
+      <div style="margin-bottom:1.5rem">
+        <div class="an-section-title" style="font-size:0.8rem;margin-bottom:0.3rem">Color Themes</div>
+        <div style="font-size:0.7rem;color:var(--dim)">Click a theme to apply it. Your choice is saved in the browser.</div>
+      </div>
 
-  </main>
+      <div class="th-grid" id="th-grid"></div>
+
+    </main>
+  </div>
 
   <script>
     const THEMES = [
       {
+        id: 'high-contrast',
+        name: 'High Contrast',
+        sub: 'default · electric dark',
+        bg: '#0B0E14', surface: '#12161F', blue: '#00D1FF',
+        green: '#39FF14', red: '#ff4d6a', purple: '#b57dff',
+        yellow: '#f9e2af', orange: '#FFAC1C', teal: '#00e5cc',
+      },
+      {
         id: 'mocha',
         name: 'Catppuccin Mocha',
-        sub: 'default · dark purple',
+        sub: 'dark · warm purple',
         bg: '#1e1e2e', surface: '#181825', blue: '#89b4fa',
         green: '#a6e3a1', red: '#f38ba8', purple: '#cba6f7',
         yellow: '#f9e2af', orange: '#fab387', teal: '#94e2d5',
@@ -180,7 +167,6 @@
         green: '#40a02b', red: '#d20f39', purple: '#8839ef',
         yellow: '#df8e1d', orange: '#fe640b', teal: '#179299',
       },
-
       {
         id: 'github-light',
         name: 'GitHub Light',
@@ -229,7 +215,6 @@
         green: '#000000', red: '#333333', purple: '#000000',
         yellow: '#555555', orange: '#555555', teal: '#555555',
       },
-
       {
         id: 'bw',
         name: 'Black & White',
@@ -240,7 +225,7 @@
       },
     ];
 
-    const current = localStorage.getItem('wlaudio-theme') || 'flexoki-light';
+    const current = localStorage.getItem('wlaudio-theme') || 'high-contrast';
 
     function buildCard(t) {
       const isActive = t.id === current;
@@ -280,17 +265,16 @@
 
       localStorage.setItem('wlaudio-theme', id);
 
-      if (id === 'mocha') {
+      if (id === 'high-contrast') {
         document.documentElement.removeAttribute('data-theme');
       } else {
         document.documentElement.setAttribute('data-theme', id);
       }
 
-      // Update active state
       grid.querySelectorAll('.th-card').forEach(c => {
         const active = c.dataset.id === id;
         c.classList.toggle('active', active);
-        const badge = c.querySelector('.th-active-badge');
+        const badge  = c.querySelector('.th-active-badge');
         const footer = c.querySelector('.th-card-footer > div');
         if (active && !badge) {
           footer.insertAdjacentHTML('afterend', '<span class="th-active-badge">ACTIVE</span>');

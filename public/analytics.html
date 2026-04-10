@@ -4,127 +4,98 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Wlaudio — Analytics</title>
-  <link rel="stylesheet" href="analytics.css" />
+  <link rel="stylesheet" href="shared.css" />
   <script src="theme.js"></script>
   <link rel="stylesheet" href="themes.css" />
+  <link rel="stylesheet" href="analytics.css" />
 </head>
 <body>
 
-  <header>
-    <div class="logo"><a href="/themes.html" class="theme-icon-link">⬡</a> <a href="/" class="theme-icon-link" style="opacity:1;font-weight:inherit">Wlaudio 0.4.0</a></div>
-    <nav class="header-nav">
-      <a href="/" class="nav-link">DASHBOARD</a>
-      <a href="/sessions.html" class="nav-link">SESSIONS</a>
-      <a href="/analytics.html" class="nav-link active">ANALYTICS</a>
-      <a href="/projects.html" class="nav-link">PROJECTS</a>
-      <a href="/configs.html" class="nav-link">CONFIGS</a>
-          <a href="/themes.html" class="nav-link">THEMES</a>
-    </nav>
-  </header>
+  <div class="app-layout">
 
-  <main class="an-main">
-
-    <div id="an-loading" class="an-loading">LOADING…</div>
-
-    <div id="an-content" class="hidden">
-
-      <!-- Summary cards -->
-      <div class="an-summary-row">
-        <div class="an-stat-card">
-          <div class="an-label">Total Sessions</div>
-          <div id="an-total-sessions" class="an-value">—</div>
-        </div>
-        <div class="an-stat-card">
-          <div class="an-label">Total Messages</div>
-          <div id="an-total-messages" class="an-value">—</div>
-        </div>
-        <div class="an-stat-card">
-          <div class="an-label">Using Claude Since</div>
-          <div id="an-since" class="an-value" style="font-size:1rem">—</div>
-        </div>
-        <div class="an-stat-card">
-          <div class="an-label">Longest Session</div>
-          <div id="an-longest-val" class="an-value">—</div>
-          <div id="an-longest-sub" class="an-sub"></div>
-        </div>
+    <!-- ── Nav sidebar ────────────────────────────────────────────────── -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <a href="/themes.html" class="sb-logo-icon">⬡</a>
+        <span class="sb-logo-text">WLAUDIO</span>
+        <span class="sb-version">0.5.0</span>
       </div>
+      <nav class="sidebar-nav">
+        <a href="/"               class="sn-link"><span class="sn-icon">▪</span>DASHBOARD</a>
+        <a href="/sessions.html"  class="sn-link"><span class="sn-icon">◈</span>SESSIONS</a>
+        <a href="/analytics.html" class="sn-link active"><span class="sn-icon">◫</span>ANALYTICS</a>
+        <a href="/projects.html"  class="sn-link"><span class="sn-icon">◧</span>PROJECTS</a>
+        <a href="/configs.html"   class="sn-link"><span class="sn-icon">◩</span>CONFIGS</a>
+        <a href="/themes.html"    class="sn-link"><span class="sn-icon">◐</span>THEMES</a>
+        <a href="/terminal.html"  class="sn-link"><span class="sn-icon">▷</span>TERMINAL</a>
+      </nav>
+      <div class="sidebar-bottom"></div>
+    </aside>
 
-      <!-- Hourly activity -->
-      <div class="an-section">
-        <div class="an-section-title">Activity by Hour of Day</div>
-        <div class="an-chart-wrap">
-          <canvas id="hourly-chart"></canvas>
-        </div>
-        <div class="an-hour-labels">
-          <span>0</span><span>3</span><span>6</span><span>9</span>
-          <span>12</span><span>15</span><span>18</span><span>21</span><span>23</span>
-        </div>
-      </div>
+    <!-- ── Analytics content ─────────────────────────────────────────── -->
+    <main class="an-main">
 
-      <!-- Outcomes + Languages -->
-      <div class="an-two-col">
+      <div id="an-loading" class="an-loading">LOADING…</div>
+
+      <div id="an-content" class="hidden">
+
+        <div class="an-summary-row">
+          <div class="an-stat-card"><div class="an-label">Total Sessions</div><div id="an-total-sessions" class="an-value">—</div></div>
+          <div class="an-stat-card"><div class="an-label">Total Messages</div><div id="an-total-messages" class="an-value">—</div></div>
+          <div class="an-stat-card"><div class="an-label">Using Claude Since</div><div id="an-since" class="an-value" style="font-size:1rem">—</div></div>
+          <div class="an-stat-card"><div class="an-label">Longest Session</div><div id="an-longest-val" class="an-value">—</div><div id="an-longest-sub" class="an-sub"></div></div>
+        </div>
 
         <div class="an-section">
-          <div class="an-section-title">Session Outcomes</div>
-          <div id="an-outcome-wrap" class="an-outcome-wrap">
-            <canvas id="outcome-chart"></canvas>
+          <div class="an-section-title">Activity by Hour of Day</div>
+          <div class="an-chart-wrap"><canvas id="hourly-chart"></canvas></div>
+          <div class="an-hour-labels">
+            <span>0</span><span>3</span><span>6</span><span>9</span>
+            <span>12</span><span>15</span><span>18</span><span>21</span><span>23</span>
           </div>
-          <div id="outcome-legend" class="an-legend"></div>
+        </div>
+
+        <div class="an-two-col">
+          <div class="an-section">
+            <div class="an-section-title">Session Outcomes</div>
+            <div id="an-outcome-wrap" class="an-outcome-wrap"><canvas id="outcome-chart"></canvas></div>
+            <div id="outcome-legend" class="an-legend"></div>
+          </div>
+          <div class="an-section">
+            <div class="an-section-title">Languages Worked In</div>
+            <div id="an-lang-bars"></div>
+          </div>
         </div>
 
         <div class="an-section">
-          <div class="an-section-title">Languages Worked In</div>
-          <div id="an-lang-bars"></div>
-        </div>
-
-      </div>
-
-      <!-- Daily cost -->
-      <div class="an-section">
-        <div class="an-section-title">Daily Estimated Cost (last 60 days)</div>
-        <div class="an-chart-wrap an-chart-tall">
-          <canvas id="daily-cost-chart"></canvas>
-        </div>
-        <div id="daily-cost-legend" class="an-legend" style="margin-top:0.6rem"></div>
-      </div>
-
-      <!-- Code velocity -->
-      <div class="an-section">
-        <div class="an-section-title">Code Velocity — Lines Changed per Day</div>
-        <div class="an-chart-wrap an-chart-tall">
-          <canvas id="velocity-chart"></canvas>
-        </div>
-      </div>
-
-      <!-- Model cost table -->
-      <div class="an-section">
-        <div class="an-section-title">Model Usage &amp; Estimated Cost (all time)</div>
-        <table id="model-table" class="an-model-table"></table>
-      </div>
-
-      <!-- Quality signals -->
-      <div class="an-two-col">
-
-        <div class="an-section">
-          <div class="an-section-title">Claude Helpfulness</div>
-          <div id="an-helpfulness-bars"></div>
+          <div class="an-section-title">Daily Estimated Cost (last 60 days)</div>
+          <div class="an-chart-wrap an-chart-tall"><canvas id="daily-cost-chart"></canvas></div>
+          <div id="daily-cost-legend" class="an-legend" style="margin-top:0.6rem"></div>
         </div>
 
         <div class="an-section">
-          <div class="an-section-title">User Satisfaction</div>
-          <div id="an-satisfaction-bars"></div>
+          <div class="an-section-title">Code Velocity — Lines Changed per Day</div>
+          <div class="an-chart-wrap an-chart-tall"><canvas id="velocity-chart"></canvas></div>
+        </div>
+
+        <div class="an-section">
+          <div class="an-section-title">Model Usage &amp; Estimated Cost (all time)</div>
+          <table id="model-table" class="an-model-table"></table>
+        </div>
+
+        <div class="an-two-col">
+          <div class="an-section"><div class="an-section-title">Claude Helpfulness</div><div id="an-helpfulness-bars"></div></div>
+          <div class="an-section"><div class="an-section-title">User Satisfaction</div><div id="an-satisfaction-bars"></div></div>
+        </div>
+
+        <div class="an-section">
+          <div class="an-section-title">Friction Categories</div>
+          <div id="an-friction-bars"></div>
         </div>
 
       </div>
-
-      <div class="an-section">
-        <div class="an-section-title">Friction Categories</div>
-        <div id="an-friction-bars"></div>
-      </div>
-
-    </div><!-- /#an-content -->
-
-  </main>
+    </main>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="analytics.js"></script>

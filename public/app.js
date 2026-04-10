@@ -94,9 +94,14 @@ function onInitialState({ activeSessions, sessionStats, turns, globalStats, hist
   }
 
   if (!state.selectedId) {
-    state.selectedId = state.sessions.size > 0
-      ? [...state.sessions.keys()][0]
-      : state.completed.size > 0 ? [...state.completed.keys()][0] : null;
+    const urlSession = new URLSearchParams(location.search).get('session');
+    if (urlSession && isSessionKnown(urlSession)) {
+      state.selectedId = urlSession;
+    } else {
+      state.selectedId = state.sessions.size > 0
+        ? [...state.sessions.keys()][0]
+        : state.completed.size > 0 ? [...state.completed.keys()][0] : null;
+    }
   }
   renderAll();
 }

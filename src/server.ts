@@ -7,8 +7,16 @@ import { readFileSync, existsSync } from 'fs';
 import { emitter, getAllSessionStates, startWatcher } from './watcher.js';
 import { loadGlobalStats, CLAUDE_DIR } from './parser.js';
 import { loadHistory, loadAllTodos, loadPlans, loadSettings, loadAllSessionMetas, loadOrphanSessionMetas, loadAllSessionFacets, loadConfigs } from './data.js';
+import { terminalManager } from './terminal.js';
 import type {
   WsMessage,
+  WsClientMessage,
+  TerminalCreatePayload,
+  TerminalInputPayload,
+  TerminalResizePayload,
+  TerminalClosePayload,
+  TerminalOutputData,
+  TerminalExitData,
   InitialStateData,
   DailyCost,
   DailyCodeVelocity,
@@ -312,18 +320,154 @@ app.get('/api/v1/session-files', (req, res) => {
   res.json(files);
 });
 
+// ── Terminal REST endpoints ────────────────────────────────────────────────
+
+app.get('/api/v1/terminals', (_req, res) => {
+  res.json(terminalManager.list());
+});
+
 // ── WebSocket server ───────────────────────────────────────────────────────
+
+const TERMINAL_ENABLED = process.env['TERMINAL_ENABLED'] === '1' || process.env['TERMINAL_ENABLED'] === 'true';
 
 const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 const clients = new Set<WebSocket>();
 
-wss.on('connection', (ws) => {
+// Map terminalId → Set of WebSocket clients subscribed to that terminal
+const terminalClients = new Map<string, Set<WebSocket>>();
+
+/** Returns true if the Origin header is present and is a localhost origin. */
+function isLocalhostOrigin(origin: string | undefined): boolean {
+  if (!origin) return false;
+  try {
+    const host = new URL(origin).hostname;
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+  } catch {
+    return false;
+  }
+}
+
+/** Type-safe runtime validators for terminal message payloads. */
+function isTerminalCreatePayload(d: unknown): d is TerminalCreatePayload {
+  if (!d || typeof d !== 'object') return false;
+  const r = d as Record<string, unknown>;
+  return typeof r['terminalId'] === 'string' && !!r['terminalId'] &&
+    typeof r['cwd'] === 'string' &&
+    typeof r['cols'] === 'number' && typeof r['rows'] === 'number';
+}
+function isTerminalInputPayload(d: unknown): d is TerminalInputPayload {
+  if (!d || typeof d !== 'object') return false;
+  const r = d as Record<string, unknown>;
+  return typeof r['terminalId'] === 'string' && !!r['terminalId'] &&
+    typeof r['data'] === 'string';
+}
+function isTerminalResizePayload(d: unknown): d is TerminalResizePayload {
+  if (!d || typeof d !== 'object') return false;
+  const r = d as Record<string, unknown>;
+  return typeof r['terminalId'] === 'string' && !!r['terminalId'] &&
+    typeof r['cols'] === 'number' && typeof r['rows'] === 'number';
+}
+function isTerminalClosePayload(d: unknown): d is TerminalClosePayload {
+  if (!d || typeof d !== 'object') return false;
+  const r = d as Record<string, unknown>;
+  return typeof r['terminalId'] === 'string' && !!r['terminalId'];
+}
+
+wss.on('connection', (ws, req) => {
   clients.add(ws);
-  ws.on('close',   () => clients.delete(ws));
+  ws.on('close',   () => {
+    clients.delete(ws);
+    // Remove ws from all terminal subscriptions; collect IDs first to avoid
+    // mutating the map while iterating, then clean up empty entries and orphan PTYs.
+    const toKill: string[] = [];
+    for (const [terminalId, subs] of terminalClients) {
+      subs.delete(ws);
+      if (subs.size === 0) toKill.push(terminalId);
+    }
+    for (const terminalId of toKill) {
+      terminalClients.delete(terminalId);
+      terminalManager.kill(terminalId);
+    }
+  });
   ws.on('error',   () => clients.delete(ws));
+
+  ws.on('message', (raw) => {
+    let msg: WsClientMessage;
+    try { msg = JSON.parse(raw.toString()) as WsClientMessage; }
+    catch { return; }
+
+    switch (msg.type) {
+      case 'terminal:create': {
+        if (!TERMINAL_ENABLED) break;
+        // Reject if Origin is missing or not localhost (prevents cross-site WS hijacking)
+        if (!isLocalhostOrigin(req.headers['origin'])) break;
+        if (!isTerminalCreatePayload(msg.data)) break;
+        const p = msg.data;
+        if (!terminalClients.has(p.terminalId)) terminalClients.set(p.terminalId, new Set());
+        terminalClients.get(p.terminalId)!.add(ws);
+        try {
+          terminalManager.create(p.terminalId, p.cwd, p.cols, p.rows);
+        } catch (err) {
+          const msg2 = err instanceof Error ? err.message : String(err);
+          const errPayload = { terminalId: p.terminalId, data: `\r\n\x1b[31m[wlaudio] Spawn error: ${msg2}\x1b[0m\r\n` };
+          if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'terminal:output', data: errPayload }));
+        }
+        break;
+      }
+      case 'terminal:input': {
+        if (!TERMINAL_ENABLED) break;
+        if (!isTerminalInputPayload(msg.data)) break;
+        const p = msg.data;
+        terminalManager.write(p.terminalId, p.data);
+        break;
+      }
+      case 'terminal:resize': {
+        if (!TERMINAL_ENABLED) break;
+        if (!isTerminalResizePayload(msg.data)) break;
+        const p = msg.data;
+        terminalManager.resize(p.terminalId, p.cols, p.rows);
+        break;
+      }
+      case 'terminal:close': {
+        if (!TERMINAL_ENABLED) break;
+        if (!isTerminalClosePayload(msg.data)) break;
+        const p = msg.data;
+        terminalManager.kill(p.terminalId);
+        terminalClients.delete(p.terminalId);
+        break;
+      }
+    }
+  });
 
   // Send full current state on connect
   send(ws, { type: 'initial_state', data: buildInitialState() });
+});
+
+// ── Terminal events → WebSocket ────────────────────────────────────────────
+
+terminalManager.on('output', (terminalId: string, data: string) => {
+  const payload: TerminalOutputData = { terminalId, data };
+  const msg: WsMessage = { type: 'terminal:output', data: payload };
+  const json = JSON.stringify(msg);
+  const subs = terminalClients.get(terminalId);
+  if (subs) {
+    for (const ws of subs) {
+      if (ws.readyState === WebSocket.OPEN) ws.send(json);
+    }
+  }
+});
+
+terminalManager.on('exit', (terminalId: string, exitCode: number) => {
+  const payload: TerminalExitData = { terminalId, exitCode };
+  const msg: WsMessage = { type: 'terminal:exit', data: payload };
+  const json = JSON.stringify(msg);
+  const subs = terminalClients.get(terminalId);
+  if (subs) {
+    for (const ws of subs) {
+      if (ws.readyState === WebSocket.OPEN) ws.send(json);
+    }
+    terminalClients.delete(terminalId);
+  }
 });
 
 // ── Watcher → WebSocket bridge ─────────────────────────────────────────────
@@ -416,6 +560,9 @@ function send(ws: WebSocket, msg: WsMessage): void {
 
 export function startServer(): void {
   startWatcher();
+
+  process.on('SIGTERM', () => { terminalManager.killAll(); process.exit(0); });
+  process.on('SIGINT',  () => { terminalManager.killAll(); process.exit(0); });
 
   httpServer.listen(PORT, () => {
     console.log(`\n  ⬡  Wlaudio, the Claude Monitor\n`);

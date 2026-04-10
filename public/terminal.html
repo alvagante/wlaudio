@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wlaudio — Terminal</title>
+  <link rel="stylesheet" href="shared.css" />
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="themes.css" />
+  <link rel="stylesheet" href="terminal.css" />
+  <!-- xterm.js -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css" />
+</head>
+<body>
+
+  <div class="app-layout">
+
+    <!-- ── Nav sidebar ────────────────────────────────────────────────── -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <a href="/themes.html" class="sb-logo-icon">⬡</a>
+        <span class="sb-logo-text">WLAUDIO</span>
+        <span class="sb-version">0.5.0</span>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="/"               class="sn-link"><span class="sn-icon">▪</span>DASHBOARD</a>
+        <a href="/sessions.html"  class="sn-link"><span class="sn-icon">◈</span>SESSIONS</a>
+        <a href="/analytics.html" class="sn-link"><span class="sn-icon">◫</span>ANALYTICS</a>
+        <a href="/projects.html"  class="sn-link"><span class="sn-icon">◧</span>PROJECTS</a>
+        <a href="/configs.html"   class="sn-link"><span class="sn-icon">◩</span>CONFIGS</a>
+        <a href="/themes.html"    class="sn-link"><span class="sn-icon">◐</span>THEMES</a>
+        <a href="/terminal.html"  class="sn-link active"><span class="sn-icon">▷</span>TERMINAL</a>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="conn-indicator">
+          <span id="conn-dot" class="dot disconnected"></span>
+          <span id="conn-label">CONNECTING</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── Terminal two-panel ─────────────────────────────────────────── -->
+    <div class="term-layout">
+
+      <aside class="term-sidebar">
+        <div class="term-sidebar-header">LAUNCH</div>
+
+        <div class="term-form">
+          <label class="term-label">Project</label>
+          <select id="term-project-select" class="term-select">
+            <option value="">Loading projects…</option>
+          </select>
+
+          <label class="term-label">Or enter path</label>
+          <input id="term-cwd-input" class="term-input" type="text" placeholder="/path/to/project" />
+
+          <button id="term-launch-btn" class="term-launch-btn">Launch Claude</button>
+        </div>
+
+        <div class="term-sidebar-header" style="margin-top:1.5rem">ACTIVE</div>
+        <ul id="term-tab-list" class="term-tab-list"></ul>
+      </aside>
+
+      <main class="term-main">
+        <div id="term-empty" class="term-empty">
+          <div class="term-empty-icon">⬡</div>
+          <div>Select a project and click <strong>Launch Claude</strong></div>
+        </div>
+        <div id="term-container" class="term-container hidden"></div>
+      </main>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
+  <script src="terminal.js"></script>
+
+</body>
+</html>
