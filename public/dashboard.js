@@ -14,111 +14,9 @@ function initFocusMode() {
   });
 }
 
-// ── Waveform ──────────────────────────────────────────────────────────────
-
-// Read and parse theme colors for use in Canvas (which doesn't understand color-mix)
-function getCssVar(name) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-}
-
-let _waveColor = null; // cached per waveform start
-
-function parseHexToRgb(hex) {
-  const h = hex.replace('#', '');
-  if (h.length === 6) {
-    return {
-      r: parseInt(h.slice(0, 2), 16),
-      g: parseInt(h.slice(2, 4), 16),
-      b: parseInt(h.slice(4, 6), 16),
-    };
-  }
-  return { r: 0, g: 209, b: 255 };
-}
-
-function waveRgba(alpha) {
-  if (!_waveColor) _waveColor = parseHexToRgb(getCssVar('--blue') || '#00D1FF');
-  return `rgba(${_waveColor.r},${_waveColor.g},${_waveColor.b},${alpha})`;
-}
-
-let waveRaf    = null;
-let waveActive = false;
-
-// Each bar has an independent phase + speed for organic movement
-const BAR_COUNT = 48;
-const bars = Array.from({ length: BAR_COUNT }, (_, i) => ({
-  phase: Math.random() * Math.PI * 2,
-  speed: 0.018 + Math.random() * 0.022,
-  amp:   0.35  + Math.random() * 0.55,
-}));
-
-function drawWaveform(canvas, active) {
-  const ctx = canvas.getContext('2d');
-  const W   = canvas.width;
-  const H   = canvas.height;
-  const now = performance.now() / 1000;
-
-  ctx.clearRect(0, 0, W, H);
-
-  const barW   = (W / BAR_COUNT) * 0.6;
-  const gap    = W / BAR_COUNT;
-  const midY   = H / 2;
-
-  for (let i = 0; i < BAR_COUNT; i++) {
-    const b = bars[i];
-    b.phase += b.speed;
-
-    let h;
-    if (active) {
-      // Multi-wave composite for organic feel
-      h = (Math.sin(b.phase) * 0.6 + Math.sin(b.phase * 1.7 + 0.5) * 0.4) * b.amp * midY;
-    } else {
-      h = Math.sin(b.phase * 0.2) * 2; // nearly flat
-    }
-
-    const barH = Math.max(2, Math.abs(h));
-    const x    = i * gap + gap / 2 - barW / 2;
-    const y    = midY - barH;
-
-    const alpha = active ? 0.7 + b.amp * 0.3 : 0.15;
-    ctx.fillStyle = waveRgba(alpha);
-
-    ctx.beginPath();
-    ctx.roundRect(x, y, barW, barH * 2, 2);
-    ctx.fill();
-  }
-}
-
-function startWaveform(active) {
-  const canvas = document.getElementById('db-waveform');
-  if (!canvas) return;
-
-  // Match display size to CSS pixel size
-  canvas.width  = canvas.offsetWidth  || 600;
-  canvas.height = canvas.offsetHeight || 64;
-
-  // Invalidate color cache so theme changes take effect
-  _waveColor = null;
-
-  waveActive = active;
-
-  if (waveRaf) cancelAnimationFrame(waveRaf);
-
-  function frame() {
-    drawWaveform(canvas, waveActive);
-    waveRaf = requestAnimationFrame(frame);
-  }
-  frame();
-}
-
-function stopWaveform() {
-  if (waveRaf) { cancelAnimationFrame(waveRaf); waveRaf = null; }
-}
-
 // ── Hero stats ────────────────────────────────────────────────────────────
 
 function renderHeroStats() {
-  const hasSessions = state.sessions.size > 0;
-
   // Find the most active session (most tokens)
   let best = null, bestSt = null, bestTokens = -1;
   for (const [id, session] of state.sessions) {
@@ -141,9 +39,6 @@ function renderHeroStats() {
   // Live badge count
   const countEl = document.getElementById('db-live-count');
   if (countEl) countEl.textContent = state.sessions.size > 0 ? String(state.sessions.size) : '';
-
-  // Restart waveform with correct activity state
-  startWaveform(hasSessions);
 }
 
 // ── Dashboard ─────────────────────────────────────────────────────────────
@@ -152,6 +47,7 @@ function renderHeroStats() {
 const state = {
   sessions:    new Map(),   // sessionId → ActiveSession (active)
   stats:       new Map(),   // sessionId → SessionStats
+  turns:       new Map(),   // sessionId → Turn[]
   globalStats: null,
   projects:    [],
   configs:     null,
@@ -232,9 +128,12 @@ function setConn(up) {
 function dispatch({ type, data }) {
   switch (type) {
     case 'initial_state':
-      state.sessions.clear(); state.stats.clear();
+      state.sessions.clear(); state.stats.clear(); state.turns.clear();
       for (const s of data.activeSessions)                      state.sessions.set(s.sessionId, s);
       for (const [id, st] of Object.entries(data.sessionStats)) state.stats.set(id, st);
+      if (data.turns) {
+        for (const [id, ts] of Object.entries(data.turns)) state.turns.set(id, ts);
+      }
       state.globalStats = data.globalStats;
       renderLive();
       renderStats();
@@ -248,10 +147,15 @@ function dispatch({ type, data }) {
       break;
     case 'session_removed':
       state.sessions.delete(data);
+      state.turns.delete(data);
       renderLive();
       break;
     case 'turns_updated':
       state.stats.set(data.sessionId, data.stats);
+      if (data.newTurns?.length) {
+        const existing = state.turns.get(data.sessionId) ?? [];
+        state.turns.set(data.sessionId, [...existing, ...data.newTurns]);
+      }
       renderLive();
       break;
     case 'stats_updated':
@@ -263,6 +167,68 @@ function dispatch({ type, data }) {
 }
 
 // ── Live sessions ─────────────────────────────────────────────────────────
+
+const TOOL_ICON = {
+  Bash:       '▶',
+  Edit:       '✎',
+  Write:      '✎',
+  Read:       '◎',
+  Glob:       '⊕',
+  Grep:       '⊕',
+  WebSearch:  '⊞',
+  WebFetch:   '⊞',
+  Agent:      '◈',
+  TodoWrite:  '☑',
+};
+
+function toolIcon(name) {
+  return TOOL_ICON[name] ?? '◆';
+}
+
+function latestActivities(turns, limit = 4) {
+  if (!turns?.length) return [];
+  const activities = [];
+  for (let i = turns.length - 1; i >= 0 && activities.length < limit; i--) {
+    const t = turns[i];
+    if (t.type !== 'assistant') continue;
+    for (const tc of (t.toolCalls ?? [])) {
+      if (activities.length >= limit) break;
+      activities.push({ name: tc.name, ts: tc.timestamp, isError: tc.result?.isError ?? false });
+    }
+  }
+  return activities;
+}
+
+function renderSessionPanel(id, session, st, turns) {
+  const tok  = st ? fmtTokens((st.totalTokens?.inputTokens ?? 0) + (st.totalTokens?.outputTokens ?? 0)) : '—';
+  const dur  = st ? fmtDuration(st.durationMs) : '—';
+  const tools = st ? fmtNum(st.toolCallCount) : '—';
+  const name  = projectName(session.cwd);
+  const acts  = latestActivities(turns);
+
+  const actHtml = acts.length
+    ? acts.map(a => `
+        <div class="db-sp-act${a.isError ? ' db-sp-act--err' : ''}">
+          <span class="db-sp-act-icon">${toolIcon(a.name)}</span>
+          <span class="db-sp-act-name">${escHtml(a.name)}</span>
+        </div>`).join('')
+    : `<div class="db-sp-act db-sp-act--dim">waiting…</div>`;
+
+  return `
+    <a class="db-session-panel" href="/sessions.html?session=${encodeURIComponent(id)}">
+      <div class="db-sp-header">
+        <span class="db-sp-pulse"></span>
+        <span class="db-sp-name">${escHtml(name)}</span>
+        <span class="db-sp-kind">${escHtml(session.kind ?? '')}</span>
+      </div>
+      <div class="db-sp-stats">
+        <div class="db-sp-stat"><span class="db-sp-val">${tok}</span><span class="db-sp-lbl">tok</span></div>
+        <div class="db-sp-stat"><span class="db-sp-val">${tools}</span><span class="db-sp-lbl">tools</span></div>
+        <div class="db-sp-stat"><span class="db-sp-val">${dur}</span><span class="db-sp-lbl">active</span></div>
+      </div>
+      <div class="db-sp-acts">${actHtml}</div>
+    </a>`;
+}
 
 function renderLive() {
   const container = document.getElementById('db-live-container');
@@ -278,19 +244,11 @@ function renderLive() {
     return;
   }
 
-  container.innerHTML = '';
+  let html = '';
   for (const [id, session] of state.sessions) {
-    const st  = state.stats.get(id);
-    const tok = st ? fmtTokens((st.totalTokens?.inputTokens ?? 0) + (st.totalTokens?.outputTokens ?? 0)) : '—';
-    const dur = st ? fmtDuration(st.durationMs) : '—';
-    const name = projectName(session.cwd);
-
-    const chip = document.createElement('a');
-    chip.className = 'db-live-chip';
-    chip.href = '/sessions.html';
-    chip.textContent = `${escHtml(name)} · ${tok} tok · ${dur}`;
-    container.appendChild(chip);
+    html += renderSessionPanel(id, session, state.stats.get(id), state.turns.get(id));
   }
+  container.innerHTML = html;
 }
 
 // ── Summary stats ─────────────────────────────────────────────────────────
@@ -390,12 +348,12 @@ function renderRecentSessions() {
     const badge = s.outcome ? `<span class="db-sr-outcome ${cls}">${escHtml(s.outcome.replace(/_/g, ' '))}</span>` : '';
     const label = truncate(s.briefSummary || s.firstPrompt, 60);
     return `
-      <div class="db-session-row">
+      <a class="db-session-row" href="/sessions.html?session=${encodeURIComponent(s.sessionId)}">
         <span class="db-sr-date">${fmtDate(s.startTime)}</span>
         <span class="db-sr-project">${escHtml(s.projectName)}</span>
         <span class="db-sr-prompt" title="${escHtml(s.briefSummary || s.firstPrompt)}">${escHtml(label)}</span>
         ${badge}
-      </div>`;
+      </a>`;
   }).join('');
 }
 
@@ -502,9 +460,6 @@ async function init() {
 
   // Focus mode toggle
   initFocusMode();
-
-  // Start waveform in idle state (no live sessions yet)
-  startWaveform(false);
 
   // WebSocket for live data
   connect();

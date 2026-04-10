@@ -158,22 +158,42 @@ export function loadOrphanSessionMetas(knownIds: Set<string>, claudeDir = CLAUDE
         if (!sessionId) continue;
         if (knownIds.has(sessionId)) continue;
 
-        // Read only the first 4 KB to find cwd — avoids loading full file into memory
+        // Read first 16 KB to extract cwd, startTime, and firstPrompt
         let projectPath = '';
+        let startTime   = '';
+        let firstPrompt = '';
         try {
           const fd = openSync(join(projectDir, jsonlFile), 'r');
-          const buf = Buffer.alloc(4096);
-          const bytesRead = readSync(fd, buf, 0, 4096, 0);
+          const buf = Buffer.alloc(16384);
+          const bytesRead = readSync(fd, buf, 0, 16384, 0);
           closeSync(fd);
           const chunk = buf.subarray(0, bytesRead).toString('utf-8');
-          for (const line of chunk.split('\n').slice(0, 20)) {
+          for (const line of chunk.split('\n').slice(0, 40)) {
             if (!line.trim()) continue;
             try {
               const rec = JSON.parse(line) as Record<string, unknown>;
-              if (typeof rec['cwd'] === 'string' && rec['cwd']) {
+              if (!projectPath && typeof rec['cwd'] === 'string' && rec['cwd']) {
                 projectPath = rec['cwd'];
-                break;
               }
+              if (!startTime && typeof rec['timestamp'] === 'string' && rec['timestamp']) {
+                startTime = rec['timestamp'];
+              }
+              if (!firstPrompt && rec['type'] === 'user') {
+                const msg = rec['message'] as Record<string, unknown> | undefined;
+                const content = msg?.['content'];
+                if (Array.isArray(content)) {
+                  for (const block of content) {
+                    const b = block as Record<string, unknown>;
+                    if (b['type'] === 'text' && typeof b['text'] === 'string' && b['text']) {
+                      firstPrompt = b['text'];
+                      break;
+                    }
+                  }
+                } else if (typeof content === 'string' && content) {
+                  firstPrompt = content;
+                }
+              }
+              if (projectPath && startTime && firstPrompt) break;
             } catch { /* skip */ }
           }
         } catch { continue; }
@@ -183,8 +203,8 @@ export function loadOrphanSessionMetas(knownIds: Set<string>, claudeDir = CLAUDE
         result[sessionId] = {
           sessionId,
           projectPath,
-          startTime: '',
-          firstPrompt: '',
+          startTime,
+          firstPrompt,
           durationMinutes: 0,
           userMessageCount: 0,
           assistantMessageCount: 0,

@@ -257,7 +257,7 @@ function renderSessionList(sessions) {
     const durStr = fmtDuration(s.durationMinutes);
 
     return `
-      <div class="pr-session-row">
+      <a class="pr-session-row" href="/sessions.html?session=${encodeURIComponent(s.sessionId)}" title="Open session">
         <span class="pr-sr-date">${fmtDate(s.startTime)}</span>
         <span class="pr-sr-prompt" title="${escHtml(s.briefSummary || s.firstPrompt)}">${escHtml(truncate(s.briefSummary || s.firstPrompt, 80))}</span>
         <div class="pr-sr-meta">
@@ -266,7 +266,7 @@ function renderSessionList(sessions) {
           <span>${escHtml(durStr)}</span>
           ${outcomeBadge}
         </div>
-      </div>
+      </a>
     `;
   }).join('');
 }

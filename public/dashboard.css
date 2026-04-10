@@ -121,13 +121,6 @@
   margin-bottom: 0.75rem;
 }
 
-.db-waveform {
-  width: 100%;
-  height: 64px;
-  display: block;
-  border-radius: 4px;
-}
-
 /* ── Hero stats ─────────────────────────────────────────────────────────── */
 .db-hero-stats {
   display: flex;
@@ -158,27 +151,116 @@
   text-transform: uppercase;
 }
 
-/* ── Live chips row ─────────────────────────────────────────────────────── */
+/* ── Live session panels ─────────────────────────────────────────────────── */
 .db-live-chips {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  margin-top: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.65rem;
 }
 
-.db-live-chip {
+.db-session-panel {
   background: var(--overlay);
   border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 0.25rem 0.65rem;
-  font-size: 0.65rem;
-  color: var(--subtext);
+  border-radius: 6px;
+  padding: 0.65rem 0.8rem;
   text-decoration: none;
-  transition: border-color 0.15s, color 0.15s;
-  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.db-session-panel:hover {
+  border-color: var(--blue);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--blue) 14%, transparent);
 }
 
-.db-live-chip:hover { border-color: var(--blue); color: var(--blue); }
+.db-sp-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.db-sp-pulse {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 5px var(--green);
+  flex-shrink: 0;
+  animation: live-pulse 2s ease-in-out infinite;
+}
+
+.db-sp-name {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.db-sp-kind {
+  font-size: 0.54rem;
+  color: var(--dim);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.db-sp-stats {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.db-sp-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 0.2rem;
+}
+
+.db-sp-val {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--blue);
+  line-height: 1;
+}
+
+.db-sp-lbl {
+  font-size: 0.54rem;
+  color: var(--dim);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.db-sp-acts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  border-top: 1px solid var(--overlay);
+  padding-top: 0.35rem;
+}
+
+.db-sp-act {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.6rem;
+  color: var(--subtext);
+}
+
+.db-sp-act--err { color: var(--red); }
+.db-sp-act--dim { color: var(--dim); font-style: italic; }
+
+.db-sp-act-icon {
+  font-size: 0.58rem;
+  color: var(--blue);
+  opacity: 0.7;
+  width: 0.85rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+.db-sp-act--err .db-sp-act-icon { color: var(--red); }
 
 .db-no-sessions {
   width: 100%;
@@ -275,10 +357,13 @@
   grid-template-columns: 80px 110px 1fr auto;
   gap: 0.6rem;
   align-items: center;
-  padding: 0.45rem 0;
+  padding: 0.45rem 0.4rem;
   border-bottom: 1px solid var(--overlay);
+  text-decoration: none; color: inherit;
+  border-radius: 4px; margin: 0 -0.4rem;
+  transition: background 0.15s;
 }
-
+.db-session-row:hover { background: var(--surface1); cursor: pointer; }
 .db-session-row:last-child { border-bottom: none; }
 
 .db-sr-date    { font-size: 0.6rem; color: var(--dim); white-space: nowrap; }
