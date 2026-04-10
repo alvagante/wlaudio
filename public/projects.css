@@ -202,3 +202,33 @@
 
 /* ── Utility ─────────────────────────────────────────────────────────────── */
 .pr-empty-section { font-size: 0.72rem; color: var(--dim); text-align: center; padding: 1rem 0; }
+
+/* ── Health score ────────────────────────────────────────────────────────── */
+.pr-health-grade {
+  display: inline-block; font-size: 0.6rem; font-weight: 700;
+  border: 1px solid; border-radius: 3px; padding: 0.05rem 0.3rem;
+  margin-left: 0.4rem; vertical-align: middle; line-height: 1.4;
+  letter-spacing: 0;
+}
+.pr-health-header {
+  display: flex; align-items: center; gap: 1.25rem; margin-bottom: 1rem;
+}
+.pr-health-grade-lg {
+  font-size: 2.5rem; font-weight: 900; border: 2px solid;
+  border-radius: 6px; width: 54px; height: 54px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.pr-health-score-info { display: flex; flex-direction: column; gap: 0.15rem; }
+.pr-health-score { font-size: 1.4rem; font-weight: 700; color: var(--text); }
+.pr-health-denom { font-size: 0.8rem; color: var(--subtext); font-weight: 400; }
+.pr-health-label { font-size: 0.6rem; color: var(--dim); letter-spacing: 0.08em; text-transform: uppercase; }
+
+.pr-health-bars { display: flex; flex-direction: column; gap: 0.45rem; }
+.pr-health-bar-row {
+  display: grid; grid-template-columns: 140px 28px 1fr 32px;
+  align-items: center; gap: 0.5rem;
+}
+.pr-health-bar-name { font-size: 0.67rem; color: var(--subtext); text-align: right; }
+.pr-health-weight   { font-size: 0.58rem; color: var(--dim); text-align: center; }
+.pr-health-pct      { font-size: 0.63rem; color: var(--dim); text-align: right; }
+.pr-bar-fill-health { height: 100%; border-radius: 3px; transition: width 0.35s ease; }

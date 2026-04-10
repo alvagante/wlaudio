@@ -6,7 +6,9 @@ import { fileURLToPath } from 'url';
 import { readFileSync, existsSync } from 'fs';
 import { emitter, getAllSessionStates, startWatcher } from './watcher.js';
 import { loadGlobalStats, CLAUDE_DIR } from './parser.js';
-import { loadHistory, loadAllTodos, loadPlans, loadSettings, loadAllSessionMetas, loadOrphanSessionMetas, loadAllSessionFacets, loadConfigs } from './data.js';
+import { loadHistory, loadAllTodos, loadPlans, loadSettings, loadAllSessionMetas, loadOrphanSessionMetas, loadAllSessionFacets, loadConfigs, loadHookScripts, loadSkillsAndCommands } from './data.js';
+import { computeProjectHealth } from './health.js';
+import { claudeMdLinter } from './linter.js';
 import { terminalManager } from './terminal.js';
 import type {
   WsMessage,
@@ -151,6 +153,42 @@ app.get('/api/v1/analytics', (_req, res) => {
     }
   }
 
+  // ── Tool totals + by-hour aggregation ────────────────────────────────────
+  const toolTotals: Record<string, number>    = {};
+  const toolByHour: Record<string, number[]>  = {};
+
+  for (const m of Object.values(allMetas)) {
+    const primaryHour = m.messageHours?.[0];
+    for (const [tool, count] of Object.entries(m.toolCounts ?? {})) {
+      toolTotals[tool] = (toolTotals[tool] ?? 0) + count;
+      if (primaryHour !== undefined) {
+        if (!toolByHour[tool]) toolByHour[tool] = new Array(24).fill(0) as number[];
+        const arr = toolByHour[tool]!;
+        arr[primaryHour] = (arr[primaryHour] ?? 0) + count;
+      }
+    }
+  }
+
+  // ── Cost forecasting from last 7/14 days ──────────────────────────────────
+  const last7  = dailyCosts.slice(-7);
+  const last14 = dailyCosts.slice(-14);
+  const burnRateDaily = last7.length
+    ? last7.reduce((s, d) => s + d.total, 0) / last7.length
+    : 0;
+  const prevWeekAvg = last14.length > 7
+    ? last14.slice(0, 7).reduce((s, d) => s + d.total, 0) / 7
+    : burnRateDaily;
+  const burnRateTrend: 'up' | 'down' | 'flat' =
+    burnRateDaily > prevWeekAvg * 1.1 ? 'up'   :
+    burnRateDaily < prevWeekAvg * 0.9 ? 'down' : 'flat';
+
+  const today           = new Date();
+  const daysLeftInWeek  = 7 - today.getDay();
+  const daysInMonth     = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const daysLeftInMonth = daysInMonth - today.getDate();
+  const forecastWeeklyCost  = Math.round(burnRateDaily * daysLeftInWeek  * 100) / 100;
+  const forecastMonthlyCost = Math.round(burnRateDaily * daysLeftInMonth * 100) / 100;
+
   const analytics: AnalyticsData = {
     totalSessions:    globalStats?.totalSessions   ?? 0,
     totalMessages:    globalStats?.totalMessages   ?? 0,
@@ -166,6 +204,12 @@ app.get('/api/v1/analytics', (_req, res) => {
     helpfulnessCounts,
     userSatisfactionCounts,
     frictionCounts,
+    toolTotals,
+    toolByHour,
+    burnRateDaily:        Math.round(burnRateDaily * 10000) / 10000,
+    burnRateTrend,
+    forecastWeeklyCost,
+    forecastMonthlyCost,
   };
 
   res.json(analytics);
@@ -176,6 +220,7 @@ app.get('/api/v1/projects', (_req, res) => {
   const orphans   = loadOrphanSessionMetas(new Set(Object.keys(allMetas)));
   Object.assign(allMetas, orphans);
   const allFacets = loadAllSessionFacets();
+  const allTodos  = loadAllTodos();
 
   // Group sessions by project path
   const byProject = new Map<string, {
@@ -265,6 +310,13 @@ app.get('/api/v1/projects', (_req, res) => {
     const firstActive = sortedActiveTimes[0]?.iso ?? '';
     const lastActive  = sortedActiveTimes[sortedActiveTimes.length - 1]?.iso ?? '';
 
+    const projectTodos = metas.flatMap(m => allTodos[m.sessionId] ?? []);
+    const health = computeProjectHealth(
+      { totalToolCalls, totalToolErrors, outcomeCounts, helpfulnessCounts,
+        totalLinesAdded, totalLinesRemoved, estimatedCostUSD: 0 },
+      projectTodos,
+    );
+
     return {
       projectPath,
       projectName: basename(projectPath.replace(/\\/g, '/')) || projectPath,
@@ -288,6 +340,9 @@ app.get('/api/v1/projects', (_req, res) => {
       helpfulnessCounts,
       sessionTypeCounts,
       sessions,
+      healthScore:     health.score,
+      healthGrade:     health.grade,
+      healthBreakdown: health.breakdown,
     };
   }).sort((a, b) => new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime());
 
@@ -295,7 +350,22 @@ app.get('/api/v1/projects', (_req, res) => {
 });
 
 app.get('/api/v1/configs', (_req, res) => {
-  res.json(loadConfigs());
+  const configs     = loadConfigs();
+  const hookScripts = loadHookScripts();
+  const skills      = loadSkillsAndCommands();
+
+  const enrichedProjects = configs.projects.map(p => ({
+    ...p,
+    claudeMdLint: p.claudeMd ? claudeMdLinter(p.claudeMd) : undefined,
+  }));
+
+  res.json({
+    ...configs,
+    projects:          enrichedProjects,
+    hookScripts,
+    skills,
+    globalClaudeMdLint: configs.globalClaudeMd ? claudeMdLinter(configs.globalClaudeMd) : null,
+  });
 });
 
 app.get('/api/v1/session-files', (req, res) => {
