@@ -30,6 +30,16 @@ Wlaudio reads directly from `~/.claude/` and streams live data to a browser dash
 | **CLAUDE FILES button** | View all config files affecting the session (global + project `CLAUDE.md`, `settings.json`, `settings.local.json`) with full filesystem paths; works for active and ended sessions |
 | **Global sparkline** | 14-day message activity bar chart from `stats-cache.json` |
 
+### Terminal page (`/terminal.html`)
+
+| Feature | Detail |
+|---------|--------|
+| **Interactive shell** | PTY-backed terminal (via `node-pty`) rendered with xterm.js; opens a login shell and auto-runs `claude` |
+| **Multi-tab** | Open unlimited terminal tabs; each shows the project directory name |
+| **Project selector** | Pick a working directory from your project list or type any path; deep-linkable via `?cwd=` |
+| **Resize** | Terminal reflows to fill available space automatically |
+| **Security** | Disabled by default — set `TERMINAL_ENABLED=1` to enable; restricted to localhost origins |
+
 ### Analytics page (`/analytics.html`)
 
 | Panel | Data |
@@ -75,6 +85,14 @@ Open **http://localhost:4242** — the dashboard connects automatically and begi
 PORT=8080 npm run dev
 ```
 
+### With the terminal enabled
+
+```bash
+TERMINAL_ENABLED=1 npm run dev
+```
+
+The terminal page (`/terminal.html`) is disabled by default. When enabled it spawns a login shell via `node-pty` — only enable it when running locally on a trusted machine.
+
 ---
 
 ## How it works
@@ -87,8 +105,9 @@ PORT=8080 npm run dev
 
 1. **Watcher** (`src/watcher.ts`) — [chokidar](https://github.com/paulmillr/chokidar) watches `~/.claude/sessions/` for process changes. Every 2 seconds it tail-reads any active `.jsonl` files for new turns.
 2. **Parser** (`src/parser.ts`) — Parses JSONL turns, extracts tool calls with timing, computes token totals, and estimates cost.
-3. **Server** (`src/server.ts`) — Express serves `public/` as static files. A WebSocket endpoint at `/ws` broadcasts parsed events to all connected clients.
-4. **Frontend** (`public/app.js`) — Vanilla JS with Chart.js (CDN). Reconnects automatically on disconnect. No build step.
+3. **Server** (`src/server.ts`) — Express serves `public/` as static files. A WebSocket endpoint at `/ws` broadcasts parsed events to all connected clients and handles terminal I/O messages.
+4. **Terminal** (`src/terminal.ts`) — `TerminalManager` wraps `node-pty` to spawn, resize, and kill PTY processes; emits `output` and `exit` events picked up by the WebSocket layer. Enabled via `TERMINAL_ENABLED=1`.
+5. **Frontend** (`public/app.js`) — Vanilla JS with Chart.js (CDN). Reconnects automatically on disconnect. No build step.
 
 ---
 
@@ -115,6 +134,7 @@ wlaudio/
 │   ├── parser.ts        JSONL reader + stats calculator
 │   ├── watcher.ts       chokidar file watcher + EventEmitter
 │   ├── server.ts        Express + WebSocket server
+│   ├── terminal.ts      PTY manager (node-pty wrapper)
 │   ├── data.ts          Loaders for history, todos, plans, meta, facets
 │   └── index.ts         Entry point, graceful shutdown
 ├── public/
@@ -124,6 +144,7 @@ wlaudio/
 │   ├── projects.html    Per-project aggregates
 │   ├── configs.html     Settings viewer (MCP, hooks, permissions)
 │   ├── themes.html      Theme picker
+│   ├── terminal.html    Browser terminal (xterm.js + node-pty)
 │   ├── app.js           WebSocket client + state
 │   ├── dashboard.js     Dashboard rendering
 │   ├── render.js        Metrics, charts, tool timeline, popups
@@ -133,13 +154,16 @@ wlaudio/
 │   ├── analytics.js     Analytics charts and tables
 │   ├── projects.js      Projects page
 │   ├── configs.js       Configs page
+│   ├── terminal.js      Terminal page (xterm.js client)
 │   ├── theme.js         Theme loader (no-flash)
 │   ├── utils.js         Shared formatters and helpers
+│   ├── shared.css       Shared palette, sidebar layout, utilities
 │   ├── style.css        Base dark theme (Catppuccin Mocha)
 │   ├── themes.css       17 theme overrides
 │   ├── analytics.css    Analytics page styles
 │   ├── projects.css     Projects page styles
-│   └── configs.css      Configs page styles
+│   ├── configs.css      Configs page styles
+│   └── terminal.css     Terminal page styles
 └── docs/
     └── screenshot.png
 ```

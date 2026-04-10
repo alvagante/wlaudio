@@ -1,5 +1,46 @@
 # Changelog
 
+## v0.5.0
+
+### Terminal page (`/terminal.html`)
+
+- **New PTY-backed terminal** — spawn interactive login shells directly in the browser using [`node-pty`](https://github.com/microsoft/node-pty) and [xterm.js](https://xtermjs.org/) (v5.5.0 + FitAddon)
+- **Multi-tab** — open as many terminal instances as you like; each tab shows the project directory name and a close button
+- **Project selector** — choose a working directory from your existing projects or type any path directly; also accepts a `?cwd=` query param so Projects page can deep-link straight to a terminal for that project
+- **Auto-launch** — each new terminal automatically runs `claude` after the shell has initialised
+- **Resize support** — the terminal reflows to fill available space and notifies the PTY of new dimensions
+- **Reconnect restore** — on WebSocket reconnect, existing terminal tabs re-subscribe to output so no output is missed
+- **Security** — terminal functionality is disabled by default; set `TERMINAL_ENABLED=1` (or `true`) to enable; `terminal:create` messages are rejected unless the HTTP `Origin` header is present and is a localhost origin (`localhost`, `127.0.0.1`, `::1`)
+- **Runtime validation** — every terminal WebSocket message is validated before use; malformed payloads are silently dropped
+- **Orphan cleanup** — when the last subscribed client disconnects, the underlying PTY process is killed automatically
+
+### Shared sidebar layout
+
+- **`public/shared.css`** — single source of truth for the High Contrast palette (`--bg`, `--text`, `--blue`, `--green`, `--overlay`, `--surface2`, etc.), sidebar layout, connection indicator, and common utility classes; all seven pages now import this one file instead of duplicating `:root` blocks
+- **Left sidebar** — replaced the top navigation bar with a 200 px left sidebar across all pages; sidebar includes logo + version, nav links with active accent bar, connection indicator, and focus mode toggle (dashboard only)
+- **Nav links** — sidebar now links all seven pages: Dashboard · Sessions · Analytics · Projects · Configs · Themes · Terminal
+
+### Theme changes
+
+- **High Contrast is the new default** — `theme.js` defaults to High Contrast (no `data-theme` needed); Catppuccin Mocha is now a named selectable theme
+- **`themes.css`** — added explicit `[data-theme="high-contrast"]` and `[data-theme="mocha"]` selectors
+- **Themes page** — High Contrast listed first in the picker
+
+### Dashboard improvements
+
+- CSS variables used throughout `dashboard.css` and `dashboard.js` so all 15+ themes propagate correctly to the hero card, waveform animation, stat glow effects, and Chart.js chart colours
+- Waveform reads `--blue` at start time; hex-to-rgba conversion replaces the previously broken `color-mix()` in Canvas `fillStyle`
+- Live session sidebar cards updated with improved badge and prompt display
+
+### Backend
+
+- **Orphan session meta** — `src/data.ts` now extracts `startTime` and `firstPrompt` from orphan session JSONL files so ended sessions appear with richer metadata in the sidebar
+- **`src/terminal.ts`** — new `TerminalManager` class (EventEmitter) wrapping `node-pty`; exposes `create`, `write`, `resize`, `kill`, `killAll`, and `list`; PTY spawn falls back to `$HOME` when the requested `cwd` does not exist
+- **New WebSocket message types** — `terminal:create`, `terminal:input`, `terminal:resize`, `terminal:close`, `terminal:output`, `terminal:exit`
+- **New REST endpoint** — `GET /api/v1/terminals` lists running terminal sessions
+
+---
+
 ## v0.4.0
 
 ### New pages
