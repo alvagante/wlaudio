@@ -113,9 +113,122 @@ function renderPlugins(plugins) {
   `).join('');
 }
 
+// ── Hook scripts ──────────────────────────────────────────────────────────
+
+const HOOK_EVENT_COLORS = {
+  PreToolUse:   '#f9e2af',
+  PostToolUse:  '#89b4fa',
+  Stop:         '#a6e3a1',
+  Notification: '#fab387',
+  unknown:      '#585b70',
+};
+
+function hookEventBadge(eventHint) {
+  const color = HOOK_EVENT_COLORS[eventHint] ?? HOOK_EVENT_COLORS.unknown;
+  return `<span class="cfg-event-badge" style="color:${color};border-color:${color}">${escHtml(eventHint)}</span>`;
+}
+
+function renderHookScripts(hookScripts) {
+  const section  = document.getElementById('cfg-hook-scripts-section');
+  const list     = document.getElementById('cfg-hook-scripts');
+  const countEl  = document.getElementById('cfg-hook-script-count');
+
+  if (!section) return;
+  if (countEl) countEl.textContent = hookScripts?.length ?? 0;
+
+  if (!hookScripts?.length) {
+    section.classList.add('hidden');
+    return;
+  }
+
+  list.innerHTML = hookScripts.map((script, idx) => {
+    const bodyId = `cfg-script-body-${idx}`;
+    return `
+      <div class="cfg-script-block">
+        <div class="cfg-script-header" data-body="${bodyId}">
+          ${hookEventBadge(script.eventHint)}
+          <span class="cfg-script-filename">${escHtml(script.filename)}</span>
+          <span class="cfg-script-chevron">▶</span>
+        </div>
+        <div id="${bodyId}" class="cfg-script-body">
+          <pre class="cfg-script-pre">${escHtml(script.content)}</pre>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  list.querySelectorAll('.cfg-script-header').forEach(header => {
+    header.addEventListener('click', () => {
+      const body    = document.getElementById(header.dataset.body);
+      const chevron = header.querySelector('.cfg-script-chevron');
+      if (!body) return;
+      const open = body.classList.toggle('open');
+      if (chevron) chevron.style.transform = open ? 'rotate(90deg)' : '';
+    });
+  });
+}
+
+// ── Skills browser ────────────────────────────────────────────────────────
+
+function renderSkills(skills) {
+  const section = document.getElementById('cfg-skills-section');
+  const list    = document.getElementById('cfg-skills-list');
+  const countEl = document.getElementById('cfg-skills-count');
+
+  if (!section) return;
+  if (countEl) countEl.textContent = skills?.length ?? 0;
+
+  if (!skills?.length) {
+    section.classList.add('hidden');
+    return;
+  }
+
+  const bySource = {};
+  for (const s of skills) {
+    const src = s.source || 'global';
+    if (!bySource[src]) bySource[src] = [];
+    bySource[src].push(s);
+  }
+
+  list.innerHTML = Object.entries(bySource).map(([source, entries]) => `
+    <div class="cfg-skills-group">
+      <div class="cfg-sub-title">${escHtml(source)}</div>
+      ${entries.map(skill => {
+        const triggerKws = skill.trigger
+          ? skill.trigger.split(/[\s,;]+/).filter(Boolean).map(kw =>
+              `<span class="cfg-skill-kw">${escHtml(kw)}</span>`).join('')
+          : '';
+        return `
+          <div class="cfg-skill-row">
+            <div class="cfg-skill-name">${escHtml(skill.name)}</div>
+            ${skill.description ? `<div class="cfg-skill-desc">${escHtml(skill.description)}</div>` : ''}
+            ${triggerKws ? `<div class="cfg-skill-trigger">${triggerKws}</div>` : ''}
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `).join('');
+}
+
+// ── CLAUDE.md lint ────────────────────────────────────────────────────────
+
+function renderClaudeMdLint(lint, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container || !lint) return;
+
+  const total = (lint.warnings?.length ?? 0) + (lint.suggestions?.length ?? 0);
+  if (total === 0) { container.classList.add('hidden'); return; }
+
+  container.classList.remove('hidden');
+  container.innerHTML = [
+    ...(lint.warnings ?? []).map(w => `<div class="cfg-lint-warning">⚠ ${escHtml(w)}</div>`),
+    ...(lint.suggestions ?? []).map(s => `<div class="cfg-lint-suggestion">→ ${escHtml(s)}</div>`),
+  ].join('');
+}
+
 // ── CLAUDE.md expandable ──────────────────────────────────────────────────
 
-function renderClaudeMd(content, preId, titleSelector) {
+function renderClaudeMd(content, preId, lint) {
   if (!content) {
     document.getElementById(preId)?.closest('.cfg-section')?.classList.add('hidden');
     return;

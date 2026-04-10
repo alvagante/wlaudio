@@ -67,6 +67,27 @@
           </div>
         </div>
 
+        <div class="an-section an-forecast-section">
+          <div class="an-section-title">Cost Forecast</div>
+          <div class="an-forecast-row">
+            <div class="an-stat-card">
+              <div class="an-label">Daily Burn Rate</div>
+              <div id="an-burn-rate" class="an-value an-value-sm">—</div>
+              <div class="an-sub"><span id="an-burn-trend" class="an-trend"></span> vs prev week</div>
+            </div>
+            <div class="an-stat-card">
+              <div class="an-label">Forecast — This Week</div>
+              <div id="an-forecast-weekly" class="an-value an-value-sm">—</div>
+              <div class="an-sub">remaining days at current rate</div>
+            </div>
+            <div class="an-stat-card">
+              <div class="an-label">Forecast — This Month</div>
+              <div id="an-forecast-monthly" class="an-value an-value-sm">—</div>
+              <div class="an-sub">remaining days at current rate</div>
+            </div>
+          </div>
+        </div>
+
         <div class="an-section">
           <div class="an-section-title">Daily Estimated Cost (last 60 days)</div>
           <div class="an-chart-wrap an-chart-tall"><canvas id="daily-cost-chart"></canvas></div>
@@ -76,6 +97,16 @@
         <div class="an-section">
           <div class="an-section-title">Code Velocity — Lines Changed per Day</div>
           <div class="an-chart-wrap an-chart-tall"><canvas id="velocity-chart"></canvas></div>
+        </div>
+
+        <div class="an-section">
+          <div class="an-section-title">Tool Usage — Top 15</div>
+          <div class="an-chart-wrap an-chart-xtall" id="an-tool-heatmap-wrap"></div>
+        </div>
+
+        <div class="an-section">
+          <div class="an-section-title">Tool Activity by Hour of Day</div>
+          <div class="an-chart-wrap an-chart-tall"><canvas id="an-tool-hour-chart"></canvas></div>
         </div>
 
         <div class="an-section">

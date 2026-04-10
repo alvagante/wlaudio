@@ -142,6 +142,13 @@ export interface AnalyticsData {
   helpfulnessCounts: Record<string, number>;
   userSatisfactionCounts: Record<string, number>;
   frictionCounts: Record<string, number>;
+  // Feature extensions
+  toolTotals?: Record<string, number>;
+  toolByHour?: Record<string, number[]>;
+  forecastWeeklyCost?: number;
+  forecastMonthlyCost?: number;
+  burnRateDaily?: number;
+  burnRateTrend?: 'up' | 'down' | 'flat';
 }
 
 // ── New data types ─────────────────────────────────────────────────────────
@@ -190,12 +197,18 @@ export interface SettingsConfig {
   mcpServers: Record<string, unknown>;
 }
 
+export interface ClaudeMdLint {
+  warnings: string[];
+  suggestions: string[];
+}
+
 export interface ProjectConfig {
   projectPath: string;
   projectName: string;
   settings: SettingsConfig | null;
   claudeMd: string | null;
   localClaudeMd: string | null;
+  claudeMdLint?: ClaudeMdLint;
 }
 
 export interface PluginEntry {
@@ -205,11 +218,41 @@ export interface PluginEntry {
   text: string;
 }
 
+export interface HookScript {
+  filename: string;
+  eventHint: string;
+  content: string;
+}
+
+export interface SkillEntry {
+  name: string;
+  description: string;
+  trigger: string;
+  source: string;
+}
+
+export interface ProjectHealthBreakdown {
+  toolErrorRate: number;
+  outcomeQuality: number;
+  todoCompletion: number;
+  costEfficiency: number;
+  helpfulness: number;
+}
+
+export interface ProjectHealth {
+  score: number;
+  grade: string;
+  breakdown: ProjectHealthBreakdown;
+}
+
 export interface ConfigsData {
   global: SettingsConfig | null;
   globalClaudeMd: string | null;
   projects: ProjectConfig[];
   plugins: PluginEntry[];
+  hookScripts?: HookScript[];
+  skills?: SkillEntry[];
+  globalClaudeMdLint?: ClaudeMdLint | null;
 }
 
 // ── WebSocket protocol ─────────────────────────────────────────────────────
