@@ -336,17 +336,57 @@ const clients = new Set<WebSocket>();
 // Map terminalId → Set of WebSocket clients subscribed to that terminal
 const terminalClients = new Map<string, Set<WebSocket>>();
 
+/** Returns true if the Origin header is present and is a localhost origin. */
+function isLocalhostOrigin(origin: string | undefined): boolean {
+  if (!origin) return false;
+  try {
+    const host = new URL(origin).hostname;
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+  } catch {
+    return false;
+  }
+}
+
+/** Type-safe runtime validators for terminal message payloads. */
+function isTerminalCreatePayload(d: unknown): d is TerminalCreatePayload {
+  if (!d || typeof d !== 'object') return false;
+  const r = d as Record<string, unknown>;
+  return typeof r['terminalId'] === 'string' && !!r['terminalId'] &&
+    typeof r['cwd'] === 'string' &&
+    typeof r['cols'] === 'number' && typeof r['rows'] === 'number';
+}
+function isTerminalInputPayload(d: unknown): d is TerminalInputPayload {
+  if (!d || typeof d !== 'object') return false;
+  const r = d as Record<string, unknown>;
+  return typeof r['terminalId'] === 'string' && !!r['terminalId'] &&
+    typeof r['data'] === 'string';
+}
+function isTerminalResizePayload(d: unknown): d is TerminalResizePayload {
+  if (!d || typeof d !== 'object') return false;
+  const r = d as Record<string, unknown>;
+  return typeof r['terminalId'] === 'string' && !!r['terminalId'] &&
+    typeof r['cols'] === 'number' && typeof r['rows'] === 'number';
+}
+function isTerminalClosePayload(d: unknown): d is TerminalClosePayload {
+  if (!d || typeof d !== 'object') return false;
+  const r = d as Record<string, unknown>;
+  return typeof r['terminalId'] === 'string' && !!r['terminalId'];
+}
+
 wss.on('connection', (ws, req) => {
   clients.add(ws);
   ws.on('close',   () => {
     clients.delete(ws);
-    // Remove ws from all terminal subscriptions; clean up empty entries and orphan PTYs
+    // Remove ws from all terminal subscriptions; collect IDs first to avoid
+    // mutating the map while iterating, then clean up empty entries and orphan PTYs.
+    const toKill: string[] = [];
     for (const [terminalId, subs] of terminalClients) {
       subs.delete(ws);
-      if (subs.size === 0) {
-        terminalClients.delete(terminalId);
-        terminalManager.kill(terminalId);
-      }
+      if (subs.size === 0) toKill.push(terminalId);
+    }
+    for (const terminalId of toKill) {
+      terminalClients.delete(terminalId);
+      terminalManager.kill(terminalId);
     }
   });
   ws.on('error',   () => clients.delete(ws));
@@ -359,19 +399,10 @@ wss.on('connection', (ws, req) => {
     switch (msg.type) {
       case 'terminal:create': {
         if (!TERMINAL_ENABLED) break;
-        // Validate Origin to prevent cross-site WebSocket hijacking
-        const origin = req.headers['origin'];
-        if (origin) {
-          try {
-            const host = new URL(origin).hostname;
-            if (host !== 'localhost' && host !== '127.0.0.1' && host !== '::1') break;
-          } catch { break; }
-        }
-        const d = msg.data as Record<string, unknown> | null | undefined;
-        if (!d || typeof d['terminalId'] !== 'string' || !d['terminalId'] ||
-            typeof d['cwd'] !== 'string' ||
-            typeof d['cols'] !== 'number' || typeof d['rows'] !== 'number') break;
-        const p = d as unknown as TerminalCreatePayload;
+        // Reject if Origin is missing or not localhost (prevents cross-site WS hijacking)
+        if (!isLocalhostOrigin(req.headers['origin'])) break;
+        if (!isTerminalCreatePayload(msg.data)) break;
+        const p = msg.data;
         if (!terminalClients.has(p.terminalId)) terminalClients.set(p.terminalId, new Set());
         terminalClients.get(p.terminalId)!.add(ws);
         try {
@@ -385,27 +416,22 @@ wss.on('connection', (ws, req) => {
       }
       case 'terminal:input': {
         if (!TERMINAL_ENABLED) break;
-        const d = msg.data as Record<string, unknown> | null | undefined;
-        if (!d || typeof d['terminalId'] !== 'string' || !d['terminalId'] ||
-            typeof d['data'] !== 'string') break;
-        const p = d as unknown as TerminalInputPayload;
+        if (!isTerminalInputPayload(msg.data)) break;
+        const p = msg.data;
         terminalManager.write(p.terminalId, p.data);
         break;
       }
       case 'terminal:resize': {
         if (!TERMINAL_ENABLED) break;
-        const d = msg.data as Record<string, unknown> | null | undefined;
-        if (!d || typeof d['terminalId'] !== 'string' || !d['terminalId'] ||
-            typeof d['cols'] !== 'number' || typeof d['rows'] !== 'number') break;
-        const p = d as unknown as TerminalResizePayload;
+        if (!isTerminalResizePayload(msg.data)) break;
+        const p = msg.data;
         terminalManager.resize(p.terminalId, p.cols, p.rows);
         break;
       }
       case 'terminal:close': {
         if (!TERMINAL_ENABLED) break;
-        const d = msg.data as Record<string, unknown> | null | undefined;
-        if (!d || typeof d['terminalId'] !== 'string' || !d['terminalId']) break;
-        const p = d as unknown as TerminalClosePayload;
+        if (!isTerminalClosePayload(msg.data)) break;
+        const p = msg.data;
         terminalManager.kill(p.terminalId);
         terminalClients.delete(p.terminalId);
         break;

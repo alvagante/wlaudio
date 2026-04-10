@@ -16,14 +16,17 @@ function connectWs() {
   ws.addEventListener('open', () => {
     wsReady = true;
     setConnStatus(true);
-    // Re-subscribe all existing sessions after reconnect
+    // Re-subscribe all existing sessions after reconnect.
+    // The server no-ops if the terminalId already exists, so this safely restores output routing.
     for (const [terminalId, s] of sessions) {
-      sendWs('terminal:create', {
-        terminalId,
-        cwd: s.cwd,
-        cols: s.term.cols,
-        rows: s.term.rows,
-      });
+      if (!s.exited) {
+        sendWs('terminal:create', {
+          terminalId,
+          cwd: s.cwd,
+          cols: s.term.cols,
+          rows: s.term.rows,
+        });
+      }
     }
   });
 
