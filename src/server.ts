@@ -328,18 +328,26 @@ app.get('/api/v1/terminals', (_req, res) => {
 
 // ── WebSocket server ───────────────────────────────────────────────────────
 
+const TERMINAL_ENABLED = process.env['TERMINAL_ENABLED'] === '1' || process.env['TERMINAL_ENABLED'] === 'true';
+
 const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 const clients = new Set<WebSocket>();
 
 // Map terminalId → Set of WebSocket clients subscribed to that terminal
 const terminalClients = new Map<string, Set<WebSocket>>();
 
-wss.on('connection', (ws) => {
+wss.on('connection', (ws, req) => {
   clients.add(ws);
   ws.on('close',   () => {
     clients.delete(ws);
-    // Remove ws from all terminal subscriptions
-    for (const subs of terminalClients.values()) subs.delete(ws);
+    // Remove ws from all terminal subscriptions; clean up empty entries and orphan PTYs
+    for (const [terminalId, subs] of terminalClients) {
+      subs.delete(ws);
+      if (subs.size === 0) {
+        terminalClients.delete(terminalId);
+        terminalManager.kill(terminalId);
+      }
+    }
   });
   ws.on('error',   () => clients.delete(ws));
 
@@ -350,7 +358,20 @@ wss.on('connection', (ws) => {
 
     switch (msg.type) {
       case 'terminal:create': {
-        const p = msg.data as TerminalCreatePayload;
+        if (!TERMINAL_ENABLED) break;
+        // Validate Origin to prevent cross-site WebSocket hijacking
+        const origin = req.headers['origin'];
+        if (origin) {
+          try {
+            const host = new URL(origin).hostname;
+            if (host !== 'localhost' && host !== '127.0.0.1' && host !== '::1') break;
+          } catch { break; }
+        }
+        const d = msg.data as Record<string, unknown> | null | undefined;
+        if (!d || typeof d['terminalId'] !== 'string' || !d['terminalId'] ||
+            typeof d['cwd'] !== 'string' ||
+            typeof d['cols'] !== 'number' || typeof d['rows'] !== 'number') break;
+        const p = d as unknown as TerminalCreatePayload;
         if (!terminalClients.has(p.terminalId)) terminalClients.set(p.terminalId, new Set());
         terminalClients.get(p.terminalId)!.add(ws);
         try {
@@ -363,17 +384,28 @@ wss.on('connection', (ws) => {
         break;
       }
       case 'terminal:input': {
-        const p = msg.data as TerminalInputPayload;
+        if (!TERMINAL_ENABLED) break;
+        const d = msg.data as Record<string, unknown> | null | undefined;
+        if (!d || typeof d['terminalId'] !== 'string' || !d['terminalId'] ||
+            typeof d['data'] !== 'string') break;
+        const p = d as unknown as TerminalInputPayload;
         terminalManager.write(p.terminalId, p.data);
         break;
       }
       case 'terminal:resize': {
-        const p = msg.data as TerminalResizePayload;
+        if (!TERMINAL_ENABLED) break;
+        const d = msg.data as Record<string, unknown> | null | undefined;
+        if (!d || typeof d['terminalId'] !== 'string' || !d['terminalId'] ||
+            typeof d['cols'] !== 'number' || typeof d['rows'] !== 'number') break;
+        const p = d as unknown as TerminalResizePayload;
         terminalManager.resize(p.terminalId, p.cols, p.rows);
         break;
       }
       case 'terminal:close': {
-        const p = msg.data as TerminalClosePayload;
+        if (!TERMINAL_ENABLED) break;
+        const d = msg.data as Record<string, unknown> | null | undefined;
+        if (!d || typeof d['terminalId'] !== 'string' || !d['terminalId']) break;
+        const p = d as unknown as TerminalClosePayload;
         terminalManager.kill(p.terminalId);
         terminalClients.delete(p.terminalId);
         break;

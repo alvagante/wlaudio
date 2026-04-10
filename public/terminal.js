@@ -16,6 +16,15 @@ function connectWs() {
   ws.addEventListener('open', () => {
     wsReady = true;
     setConnStatus(true);
+    // Re-subscribe all existing sessions after reconnect
+    for (const [terminalId, s] of sessions) {
+      sendWs('terminal:create', {
+        terminalId,
+        cwd: s.cwd,
+        cols: s.term.cols,
+        rows: s.term.rows,
+      });
+    }
   });
 
   ws.addEventListener('close', () => {
@@ -221,10 +230,10 @@ function getXtermTheme() {
   const root = getComputedStyle(document.documentElement);
   const get  = (v) => root.getPropertyValue(v).trim();
   return {
-    background:    get('--bg')        || '#0d0d0d',
-    foreground:    get('--fg')        || '#e0e0e0',
-    cursor:        get('--accent')    || '#00ff88',
-    selectionBackground: get('--surface') || '#1a1a1a',
+    background:    get('--bg')       || '#0d0d0d',
+    foreground:    get('--text')     || '#e0e0e0',
+    cursor:        get('--blue')     || '#00D1FF',
+    selectionBackground: get('--overlay') || '#1a1a1a',
     black:   '#000000', red:     '#cc3333', green:  '#33cc33', yellow: '#cccc33',
     blue:    '#3333cc', magenta: '#cc33cc', cyan:   '#33cccc', white:  '#cccccc',
     brightBlack: '#555555', brightRed: '#ff5555', brightGreen: '#55ff55',

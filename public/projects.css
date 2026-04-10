@@ -175,7 +175,7 @@
   border-radius: 4px; margin: 0 -0.4rem; padding-left: 0.4rem; padding-right: 0.4rem;
   transition: background 0.15s;
 }
-.pr-session-row:hover { background: var(--surface1); cursor: pointer; }
+.pr-session-row:hover { background: var(--overlay); cursor: pointer; }
 .pr-session-row:last-child { border-bottom: none; }
 .pr-sr-date   { font-size: 0.65rem; color: var(--dim); white-space: nowrap; }
 .pr-sr-prompt { font-size: 0.7rem; color: var(--subtext); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

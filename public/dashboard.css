@@ -363,7 +363,7 @@
   border-radius: 4px; margin: 0 -0.4rem;
   transition: background 0.15s;
 }
-.db-session-row:hover { background: var(--surface1); cursor: pointer; }
+.db-session-row:hover { background: var(--overlay); cursor: pointer; }
 .db-session-row:last-child { border-bottom: none; }
 
 .db-sr-date    { font-size: 0.6rem; color: var(--dim); white-space: nowrap; }
