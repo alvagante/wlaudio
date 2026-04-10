@@ -37,6 +37,7 @@ export interface Turn {
   timestamp: string;
   isSidechain: boolean;
   sessionId: string;
+  text?: string;        // user turn prompt text
   model?: string;
   tokens?: TokenUsage;
   toolCalls?: ToolCall[];

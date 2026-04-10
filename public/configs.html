@@ -28,6 +28,7 @@
         <a href="/configs.html"   class="sn-link active"><span class="sn-icon">◩</span>CONFIGS</a>
         <a href="/themes.html"    class="sn-link"><span class="sn-icon">◐</span>THEMES</a>
         <a href="/terminal.html"  class="sn-link"><span class="sn-icon">▷</span>TERMINAL</a>
+        <a href="/timeline.html"  class="sn-link"><span class="sn-icon">◑</span>TIMELINE</a>
       </nav>
       <div class="sidebar-bottom"></div>
     </aside>
@@ -67,12 +68,23 @@
           <div id="cfg-plugins-list"></div>
         </div>
 
+        <div class="cfg-section" id="cfg-hook-scripts-section">
+          <div class="cfg-section-title">Hook Scripts <span id="cfg-hook-script-count" class="cfg-badge"></span></div>
+          <div id="cfg-hook-scripts"></div>
+        </div>
+
+        <div class="cfg-section" id="cfg-skills-section">
+          <div class="cfg-section-title">Skills &amp; Commands <span id="cfg-skills-count" class="cfg-badge"></span></div>
+          <div id="cfg-skills-list"></div>
+        </div>
+
         <div class="cfg-section" id="cfg-global-md-section">
           <div class="cfg-section-title cfg-expandable" data-target="cfg-global-md-body">
             <span>Global CLAUDE.md</span>
             <span class="cfg-expand-icon">▶</span>
           </div>
           <div id="cfg-global-md-body" class="hidden">
+            <div id="cfg-global-md-lint" class="cfg-lint-panel hidden"></div>
             <pre id="cfg-global-md" class="cfg-md-pre"></pre>
           </div>
         </div>
@@ -84,6 +96,7 @@
     </main>
   </div>
 
+  <script src="learning.js"></script>
   <script src="configs.js"></script>
 
 </body>

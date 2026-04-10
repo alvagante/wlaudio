@@ -4,8 +4,8 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { join, dirname, resolve, basename } from 'path';
 import { fileURLToPath } from 'url';
 import { readFileSync, existsSync } from 'fs';
-import { emitter, getAllSessionStates, startWatcher } from './watcher.js';
-import { loadGlobalStats, CLAUDE_DIR } from './parser.js';
+import { emitter, getAllSessionStates, getSessionState, startWatcher } from './watcher.js';
+import { loadGlobalStats, parseSessionTurns, encodePath, CLAUDE_DIR } from './parser.js';
 import { loadHistory, loadAllTodos, loadPlans, loadSettings, loadAllSessionMetas, loadOrphanSessionMetas, loadAllSessionFacets, loadConfigs, loadHookScripts, loadSkillsAndCommands } from './data.js';
 import { computeProjectHealth } from './health.js';
 import { claudeMdLinter } from './linter.js';
@@ -54,6 +54,33 @@ app.use(express.static(publicDir));
 
 app.get('/api/state', (_req, res) => {
   res.json(buildInitialState());
+});
+
+app.get('/api/v1/sessions/:id/turns', (req, res) => {
+  const sessionId = req.params['id'] ?? '';
+  if (!/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
+    res.status(400).json({ error: 'Invalid session ID' });
+    return;
+  }
+
+  // Active session — serve from memory
+  const active = getSessionState(sessionId);
+  if (active) {
+    res.json({ turns: active.turns });
+    return;
+  }
+
+  // Historical session — locate JSONL via session-meta
+  const allMeta = loadAllSessionMetas();
+  const meta = allMeta[sessionId];
+  if (!meta) {
+    res.status(404).json({ error: 'Session not found' });
+    return;
+  }
+
+  const filePath = join(CLAUDE_DIR, 'projects', encodePath(meta.projectPath), `${sessionId}.jsonl`);
+  const { turns } = parseSessionTurns(filePath, 0);
+  res.json({ turns });
 });
 
 // ── Analytics API ──────────────────────────────────────────────────────────

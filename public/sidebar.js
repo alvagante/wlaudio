@@ -89,6 +89,7 @@ function buildSessionItem(id, session, st, selectedId, onSelect, isCompleted, fa
 
 export function renderGlobalStats(gs) {
   if (!gs) return;
+  if (!document.getElementById('gs-sessions')) return; // not on this page
 
   document.getElementById('gs-sessions').textContent = gs.totalSessions ?? '—';
   document.getElementById('gs-messages').textContent = gs.totalMessages ?? '—';
@@ -138,6 +139,7 @@ function updateSparkline(activity) {
 export function renderPlans(plans, onOpen) {
   const container = document.getElementById('sidebar-plans');
   const counter   = document.getElementById('plans-count');
+  if (!container || !counter) return; // not on this page
   counter.textContent = plans.length;
 
   if (!plans.length) {
@@ -157,6 +159,7 @@ export function renderPlans(plans, onOpen) {
 
 export function renderSettings(settings) {
   const panel = document.getElementById('config-panel');
+  if (!panel) return; // not on this page
   if (!settings) {
     panel.innerHTML = '<div class="sidebar-empty">No settings.json found</div>';
     return;

@@ -141,3 +141,52 @@
 
 /* ── Empty state ─────────────────────────────────────────────────────────── */
 .cfg-empty { color: var(--dim); font-size: 0.72rem; text-align: center; padding: 1rem 0; }
+
+/* ── Hook scripts ────────────────────────────────────────────────────────── */
+.cfg-script-block { margin-bottom: 0.5rem; border: 1px solid var(--overlay); border-radius: 4px; overflow: hidden; }
+.cfg-script-block:last-child { margin-bottom: 0; }
+.cfg-script-header {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.45rem 0.75rem; cursor: pointer; background: var(--surface2);
+  transition: background 0.1s; user-select: none;
+}
+.cfg-script-header:hover { background: var(--overlay); }
+.cfg-script-filename { font-size: 0.68rem; color: var(--text); flex: 1; font-family: monospace; }
+.cfg-script-chevron  { font-size: 0.5rem; color: var(--dim); transition: transform 0.2s; }
+.cfg-script-body { display: none; border-top: 1px solid var(--overlay); }
+.cfg-script-body.open { display: block; }
+.cfg-script-pre {
+  margin: 0; padding: 0.75rem 1rem; font-size: 0.65rem; line-height: 1.55;
+  color: var(--subtext); white-space: pre; overflow-x: auto;
+  background: var(--surface2); max-height: 320px; overflow-y: auto;
+}
+
+/* ── Event badge ─────────────────────────────────────────────────────────── */
+.cfg-event-badge {
+  font-size: 0.54rem; font-weight: 700; letter-spacing: 0.07em;
+  border: 1px solid; border-radius: 3px; padding: 0.05rem 0.35rem;
+  white-space: nowrap;
+}
+
+/* ── Skills browser ──────────────────────────────────────────────────────── */
+.cfg-skills-group { margin-bottom: 0.75rem; }
+.cfg-skills-group:last-child { margin-bottom: 0; }
+.cfg-skill-row { padding: 0.55rem 0; border-bottom: 1px solid var(--surface2); }
+.cfg-skill-row:last-child { border-bottom: none; }
+.cfg-skill-name  { font-size: 0.72rem; font-weight: 700; color: var(--text); margin-bottom: 0.2rem; }
+.cfg-skill-desc  { font-size: 0.65rem; color: var(--subtext); line-height: 1.5; margin-bottom: 0.3rem; }
+.cfg-skill-trigger { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.cfg-skill-kw {
+  font-size: 0.58rem; background: var(--overlay); color: var(--dim);
+  border-radius: 3px; padding: 0.1rem 0.35rem;
+}
+
+/* ── CLAUDE.md lint panel ────────────────────────────────────────────────── */
+.cfg-lint-panel {
+  background: color-mix(in srgb, var(--orange) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--orange) 22%, transparent);
+  border-radius: 4px; padding: 0.6rem 0.75rem; margin-bottom: 0.75rem;
+}
+.cfg-lint-warning    { display: flex; gap: 0.4rem; font-size: 0.67rem; color: var(--orange); margin-bottom: 0.3rem; line-height: 1.5; }
+.cfg-lint-suggestion { display: flex; gap: 0.4rem; font-size: 0.67rem; color: var(--blue);   margin-bottom: 0.3rem; line-height: 1.5; }
+.cfg-lint-warning:last-child, .cfg-lint-suggestion:last-child { margin-bottom: 0; }

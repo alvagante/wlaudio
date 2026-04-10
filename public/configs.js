@@ -362,6 +362,16 @@ function buildProjectBody(p) {
 
   if (p.claudeMd) {
     parts.push('<div class="cfg-sub-title">CLAUDE.md</div>');
+    if (p.claudeMdLint) {
+      const warnings    = p.claudeMdLint.warnings    ?? [];
+      const suggestions = p.claudeMdLint.suggestions ?? [];
+      if (warnings.length || suggestions.length) {
+        parts.push('<div class="cfg-lint-panel">');
+        parts.push(warnings.map(w    => `<div class="cfg-lint-warning">⚠ ${escHtml(w)}</div>`).join(''));
+        parts.push(suggestions.map(s => `<div class="cfg-lint-suggestion">→ ${escHtml(s)}</div>`).join(''));
+        parts.push('</div>');
+      }
+    }
     parts.push(`<pre class="cfg-md-pre">${escHtml(p.claudeMd)}</pre>`);
   }
 
@@ -397,6 +407,9 @@ async function init() {
   renderMcp(g.mcpServers);
   renderPlugins(data.plugins);
   renderClaudeMd(data.globalClaudeMd, 'cfg-global-md');
+  renderClaudeMdLint(data.globalClaudeMdLint, 'cfg-global-md-lint');
+  renderHookScripts(data.hookScripts ?? []);
+  renderSkills(data.skills ?? []);
   renderProjects(data.projects);
 
   initExpandables();

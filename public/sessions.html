@@ -28,6 +28,7 @@
         <a href="/configs.html"   class="sn-link"><span class="sn-icon">◩</span>CONFIGS</a>
         <a href="/themes.html"    class="sn-link"><span class="sn-icon">◐</span>THEMES</a>
         <a href="/terminal.html"  class="sn-link"><span class="sn-icon">▷</span>TERMINAL</a>
+        <a href="/timeline.html"  class="sn-link"><span class="sn-icon">◑</span>TIMELINE</a>
       </nav>
       <div class="sidebar-bottom">
         <div class="conn-indicator">
@@ -45,22 +46,6 @@
           SESSIONS <span id="session-count" class="badge">0</span>
         </div>
         <ul id="session-list"></ul>
-
-        <div class="panel-header" style="margin-top:auto">TODAY</div>
-        <div id="global-stats" class="global-stats">
-          <div class="stat-row"><span class="dim">Sessions</span><span id="gs-sessions">—</span></div>
-          <div class="stat-row"><span class="dim">Messages</span><span id="gs-messages">—</span></div>
-          <div class="stat-row"><span class="dim">Input tok</span><span id="gs-input">—</span></div>
-          <div class="stat-row"><span class="dim">Output tok</span><span id="gs-output">—</span></div>
-          <div class="stat-row"><span class="dim">Cache read</span><span id="gs-cache">—</span></div>
-        </div>
-        <div id="sparkline-wrap"><canvas id="sparkline" height="48"></canvas></div>
-
-        <div class="panel-header">PLANS <span id="plans-count" class="badge">0</span></div>
-        <div id="sidebar-plans" class="sidebar-plans"></div>
-
-        <div class="panel-header">CONFIG</div>
-        <div id="config-panel" class="config-panel"></div>
       </aside>
 
       <main id="main">
@@ -197,6 +182,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="learning.js"></script>
   <script type="module" src="app.js"></script>
 
 </body>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wlaudio — Timeline</title>
+  <link rel="stylesheet" href="shared.css" />
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="themes.css" />
+  <link rel="stylesheet" href="timeline.css" />
+</head>
+<body>
+
+  <div class="app-layout">
+
+    <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <a href="/themes.html" class="sb-logo-icon">⬡</a>
+        <span class="sb-logo-text">WLAUDIO</span>
+        <span class="sb-version">0.5.0</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="/"               class="sn-link"><span class="sn-icon">▪</span>DASHBOARD</a>
+        <a href="/sessions.html"  class="sn-link"><span class="sn-icon">◈</span>SESSIONS</a>
+        <a href="/analytics.html" class="sn-link"><span class="sn-icon">◫</span>ANALYTICS</a>
+        <a href="/projects.html"  class="sn-link"><span class="sn-icon">◧</span>PROJECTS</a>
+        <a href="/configs.html"   class="sn-link"><span class="sn-icon">◩</span>CONFIGS</a>
+        <a href="/themes.html"    class="sn-link"><span class="sn-icon">◐</span>THEMES</a>
+        <a href="/terminal.html"  class="sn-link"><span class="sn-icon">▷</span>TERMINAL</a>
+        <a href="/timeline.html"  class="sn-link active"><span class="sn-icon">◑</span>TIMELINE</a>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="conn-indicator">
+          <span class="dot disconnected"></span>
+          <span>OFFLINE</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── Timeline two-column layout ───────────────────────────────────── -->
+    <div class="tl-layout">
+
+      <!-- Left: session picker -->
+      <aside class="tl-sidebar">
+        <div class="tl-sidebar-header">SESSIONS</div>
+        <input id="tl-search" class="tl-search" type="search" placeholder="Search sessions…" />
+        <ul id="tl-session-list" class="tl-session-list"></ul>
+      </aside>
+
+      <!-- Right: timeline viewport -->
+      <div class="tl-main">
+
+        <!-- Toolbar -->
+        <div class="tl-toolbar">
+          <div id="tl-label" class="tl-label">Select a session</div>
+          <div class="tl-filters">
+            <label>
+              <input id="tl-filter-errors" type="checkbox" />
+              Errors only
+            </label>
+            <label>
+              <input id="tl-filter-user" type="checkbox" checked />
+              User messages
+            </label>
+            <label>
+              <input id="tl-filter-tools" type="checkbox" checked />
+              Tool calls
+            </label>
+          </div>
+        </div>
+
+        <!-- Loading state -->
+        <div id="tl-loading" class="tl-loading">LOADING…</div>
+
+        <!-- Empty state -->
+        <div id="tl-empty" class="tl-empty hidden">← Select a session to view its timeline</div>
+
+        <!-- Timeline scroll area -->
+        <div id="tl-timeline" class="tl-timeline hidden"></div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script src="learning.js"></script>
+  <script type="module" src="timeline.js"></script>
+
+</body>
+</html>

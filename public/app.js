@@ -149,7 +149,7 @@ function onStatsUpdated(stats) {
 
 function onHistoryUpdated({ entries }) {
   state.history = entries;
-  if (state.selectedId) renderPrompts(state.selectedId, state.history);
+  if (state.selectedId) renderPrompts(state.selectedId, state.history, state.turns.get(state.selectedId) ?? []);
 }
 
 function onTodosUpdated({ todos }) {
@@ -228,7 +228,7 @@ function renderDetailView() {
   updateCodeImpact(meta, stats);
   resetTimeline();
   appendTurnsToTimeline(turns);
-  renderPrompts(id, state.history);
+  renderPrompts(id, state.history, turns);
   renderTasks(id, state.todos);
   renderFileHistory(turns);
 }

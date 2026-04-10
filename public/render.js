@@ -401,25 +401,44 @@ function buildToolRow(tc, isSidechain) {
 
 // ── Prompts panel ──────────────────────────────────────────────────────────
 
-export function renderPrompts(sessionId, history) {
+export function renderPrompts(sessionId, history, turns = []) {
   const list    = document.getElementById('prompts-list');
   const counter = document.getElementById('prompts-count');
-  const entries = (history ?? []).filter(e => e.sessionId === sessionId);
 
-  counter.textContent = entries.length;
-  if (!entries.length) {
+  // Primary source: history.jsonl entries matched by sessionId
+  const historyEntries = (history ?? []).filter(e => e.sessionId === sessionId);
+
+  if (historyEntries.length) {
+    counter.textContent = historyEntries.length;
+    list.innerHTML = historyEntries.map(e => {
+      const isCmd = e.display.startsWith('/') || e.display.startsWith('!');
+      const cls   = isCmd ? 'prompt-cmd' : 'prompt-text';
+      return `
+        <div class="prompt-row">
+          <span class="prompt-time">${fmtTimestamp(e.timestamp)}</span>
+          <span class="prompt-body ${cls}">${escHtml(e.display)}</span>
+        </div>
+      `;
+    }).join('');
+    return;
+  }
+
+  // Fallback: extract user prompts from turn text (works for historical sessions
+  // where history.jsonl entries have no sessionId or are unavailable)
+  const turnEntries = (turns ?? []).filter(t => t.type === 'user' && t.text);
+  counter.textContent = turnEntries.length;
+  if (!turnEntries.length) {
     list.innerHTML = '<div class="panel-empty">No prompts recorded for this session</div>';
     return;
   }
 
-  list.innerHTML = entries.map(e => {
-    const isCmd  = e.display.startsWith('/') || e.display.startsWith('!');
-    const cls    = isCmd ? 'prompt-cmd' : 'prompt-text';
-    const time   = fmtTimestamp(e.timestamp);
+  list.innerHTML = turnEntries.map(t => {
+    const isCmd = t.text.startsWith('/') || t.text.startsWith('!');
+    const cls   = isCmd ? 'prompt-cmd' : 'prompt-text';
     return `
       <div class="prompt-row">
-        <span class="prompt-time">${time}</span>
-        <span class="prompt-body ${cls}">${escHtml(e.display)}</span>
+        <span class="prompt-time">${fmtTimestamp(t.timestamp)}</span>
+        <span class="prompt-body ${cls}">${escHtml(t.text)}</span>
       </div>
     `;
   }).join('');
