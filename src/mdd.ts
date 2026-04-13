@@ -12,108 +12,10 @@ import type {
   MddSummary,
   MddDashboardResponse,
 } from './types/index.js';
+import { parseMddFrontmatter } from './mdd-parse.js';
 
-// ── Frontmatter parser ────────────────────────────────────────────────────────
-
-interface ParsedFrontmatter {
-  id: string;
-  title: string;
-  status: string;
-  phase: string;
-  lastSynced: string;
-  dependsOn: string[];
-  sourceFiles: string[];
-  knownIssues: string[];
-  body: string;
-}
-
-function parseStringList(value: string): string[] {
-  // Handles both inline [a, b] and block list forms
-  const trimmed = value.trim();
-  if (trimmed.startsWith('[')) {
-    // Inline: [item1, item2]
-    return trimmed
-      .slice(1, -1)
-      .split(',')
-      .map(s => s.trim().replace(/^['"]|['"]$/g, ''))
-      .filter(Boolean);
-  }
-  // Block form handled by reading continuation lines — not needed here;
-  // caller passes pre-joined block list lines as a single string with \n  - items
-  return trimmed
-    .split('\n')
-    .map(l => l.replace(/^\s*-\s*/, '').trim())
-    .filter(Boolean);
-}
-
-export function parseMddFrontmatter(raw: string): ParsedFrontmatter {
-  const defaults: ParsedFrontmatter = {
-    id: '', title: '', status: '', phase: '', lastSynced: '',
-    dependsOn: [], sourceFiles: [], knownIssues: [], body: '',
-  };
-
-  const parts = raw.split(/^---\s*$/m);
-  // Valid structure: ['', frontmatter, body...]
-  if (parts.length < 3) {
-    return { ...defaults, body: raw };
-  }
-
-  const fmText = parts[1] ?? '';
-  const body   = parts.slice(2).join('---').trim();
-
-  // Build a map for multi-line list fields (source_files, depends_on, known_issues)
-  // by scanning lines sequentially
-  const lines = fmText.split('\n');
-  const fields: Record<string, string> = {};
-  let currentKey = '';
-  const listAccum: Record<string, string[]> = {};
-
-  for (const line of lines) {
-    // New key: value line
-    const keyVal = line.match(/^(\w[\w_-]*):\s*(.*)/);
-    if (keyVal) {
-      currentKey = keyVal[1] ?? '';
-      const val  = (keyVal[2] ?? '').trim();
-      if (val && val !== '[]' && !val.startsWith('[')) {
-        fields[currentKey] = val;
-      } else if (val.startsWith('[')) {
-        // Inline list
-        fields[currentKey] = val;
-      } else {
-        // Block list or empty — will accumulate below
-        listAccum[currentKey] = [];
-      }
-      continue;
-    }
-    // List item line (starts with spaces + -)
-    const listItem = line.match(/^\s+-\s+(.*)/);
-    if (listItem && currentKey) {
-      if (!listAccum[currentKey]) listAccum[currentKey] = [];
-      const item = (listItem[1] ?? '').trim();
-      const arr  = listAccum[currentKey];
-      if (item && arr) arr.push(item);
-    }
-  }
-
-  const getList = (key: string): string[] => {
-    if (listAccum[key]) return listAccum[key];
-    const raw = fields[key];
-    if (!raw) return [];
-    return parseStringList(raw);
-  };
-
-  return {
-    id:          fields['id']           ?? '',
-    title:       fields['title']        ?? '',
-    status:      fields['status']       ?? '',
-    phase:       fields['phase']        ?? '',
-    lastSynced:  fields['last_synced']  ?? '',
-    dependsOn:   getList('depends_on'),
-    sourceFiles: getList('source_files'),
-    knownIssues: getList('known_issues'),
-    body,
-  };
-}
+// Re-export so consumers can import from a single entry point.
+export { parseMddFrontmatter } from './mdd-parse.js';
 
 // ── Drift classifier ──────────────────────────────────────────────────────────
 
@@ -144,7 +46,6 @@ export function classifyDrift(
     return { drift: 'untracked', driftCommitCount: 0, driftLatestMsg: '' };
   }
 
-  // Check that at least one source file exists
   const firstFile = sourceFiles[0];
   if (firstFile) {
     const absPath = resolve(cwd, firstFile);
@@ -153,7 +54,6 @@ export function classifyDrift(
     }
   }
 
-  // Run git log to check for commits after last_synced
   try {
     const gitArgs = [
       'git', 'log', '--oneline',
@@ -170,7 +70,6 @@ export function classifyDrift(
 
     const commitLines = output.split('\n').filter(Boolean);
     const latestLine  = commitLines[0] ?? '';
-    // Strip the short hash prefix: "abc1234 commit message" → "commit message"
     const latestMsg   = latestLine.replace(/^[0-9a-f]+\s+/, '');
 
     return {
@@ -179,7 +78,6 @@ export function classifyDrift(
       driftLatestMsg: latestMsg,
     };
   } catch {
-    // Not a git repo or git not available → treat as untracked
     return { drift: 'untracked', driftCommitCount: 0, driftLatestMsg: '' };
   }
 }
@@ -217,9 +115,7 @@ export function buildMddGraph(docs: Pick<MddDocSummary, 'id' | 'status' | 'depen
     .filter(d => !hasOutgoing.has(d.id) && !hasIncoming.has(d.id))
     .map(d => d.id);
 
-  const ascii = renderAsciiGraph(edges, orphans);
-
-  return { edges, orphans, ascii };
+  return { edges, orphans, ascii: renderAsciiGraph(edges, orphans) };
 }
 
 function renderAsciiGraph(edges: MddDepEdge[], orphans: string[]): string {
@@ -246,7 +142,7 @@ function renderAsciiGraph(edges: MddDepEdge[], orphans: string[]): string {
   return lines.join('\n');
 }
 
-// ── Audit type detector ───────────────────────────────────────────────────────
+// ── Audit helpers ─────────────────────────────────────────────────────────────
 
 function detectAuditType(filename: string): MddAuditType {
   if (filename.startsWith('report-'))       return 'report';
@@ -260,8 +156,7 @@ function detectAuditType(filename: string): MddAuditType {
 }
 
 function extractDateFromFilename(filename: string): string {
-  const match = filename.match(/(\d{4}-\d{2}-\d{2})/);
-  return match?.[1] ?? '';
+  return filename.match(/(\d{4}-\d{2}-\d{2})/)?.[1] ?? '';
 }
 
 // ── Main dashboard builder ────────────────────────────────────────────────────
@@ -277,92 +172,87 @@ export function buildMddDashboard(mddDir: string): MddDashboardResponse {
 
   if (!existsSync(mddDir)) return empty;
 
-  // ── Read docs ──────────────────────────────────────────────────────────────
-  const docsDir = join(mddDir, 'docs');
-  const docs: MddDocSummary[] = [];
-
-  if (existsSync(docsDir)) {
-    let filenames: string[] = [];
-    try { filenames = readdirSync(docsDir).filter(f => f.endsWith('.md') && !f.startsWith('.')); }
-    catch { /* skip */ }
-
-    // Sort by numeric prefix
-    filenames.sort((a, b) => {
-      const na = parseInt(a, 10) || 0;
-      const nb = parseInt(b, 10) || 0;
-      return na !== nb ? na - nb : a.localeCompare(b);
-    });
-
-    for (const filename of filenames) {
-      try {
-        const raw = readFileSync(join(docsDir, filename), 'utf-8');
-        const fm  = parseMddFrontmatter(raw);
-        const drift = classifyDrift(fm.lastSynced, fm.sourceFiles, process.cwd());
-        docs.push({
-          filename,
-          id:               fm.id || filename.replace(/\.md$/, ''),
-          title:            fm.title,
-          status:           fm.status,
-          phase:            fm.phase,
-          lastSynced:       fm.lastSynced,
-          dependsOn:        fm.dependsOn,
-          sourceFiles:      fm.sourceFiles,
-          knownIssues:      fm.knownIssues,
-          body:             fm.body,
-          drift:            drift.drift,
-          driftCommitCount: drift.driftCommitCount,
-          driftLatestMsg:   drift.driftLatestMsg,
-        });
-      } catch { /* skip unreadable */ }
-    }
-  }
-
-  // ── Read audits ────────────────────────────────────────────────────────────
-  const auditsDir = join(mddDir, 'audits');
-  const audits: MddAuditFile[] = [];
-
-  if (existsSync(auditsDir)) {
-    let filenames: string[] = [];
-    try { filenames = readdirSync(auditsDir).filter(f => f.endsWith('.md') && !f.startsWith('.')); }
-    catch { /* skip */ }
-
-    for (const filename of filenames) {
-      try {
-        const body = readFileSync(join(auditsDir, filename), 'utf-8');
-        audits.push({
-          filename,
-          date: extractDateFromFilename(filename),
-          type: detectAuditType(filename),
-          body,
-        });
-      } catch { /* skip */ }
-    }
-
-    // Sort by date descending
-    audits.sort((a, b) => b.date.localeCompare(a.date));
-  }
-
-  // ── Read startup ───────────────────────────────────────────────────────────
-  let startup = '';
-  const startupPath = join(mddDir, '.startup.md');
-  if (existsSync(startupPath)) {
-    try { startup = readFileSync(startupPath, 'utf-8'); }
-    catch { /* leave empty */ }
-  }
-
-  // ── Build graph ────────────────────────────────────────────────────────────
+  const docs = readDocs(mddDir);
+  const audits = readAudits(mddDir);
+  const startup = readStartup(mddDir);
   const graph = buildMddGraph(docs.map(d => ({ id: d.id, status: d.status, dependsOn: d.dependsOn })));
 
-  // ── Summary ────────────────────────────────────────────────────────────────
   const summary: MddSummary = {
-    docCount:       docs.length,
-    inSync:         docs.filter(d => d.drift === 'in_sync').length,
-    drifted:        docs.filter(d => d.drift === 'drifted').length,
-    brokenRef:      docs.filter(d => d.drift === 'broken_ref').length,
-    untracked:      docs.filter(d => d.drift === 'untracked').length,
+    docCount:        docs.length,
+    inSync:          docs.filter(d => d.drift === 'in_sync').length,
+    drifted:         docs.filter(d => d.drift === 'drifted').length,
+    brokenRef:       docs.filter(d => d.drift === 'broken_ref').length,
+    untracked:       docs.filter(d => d.drift === 'untracked').length,
     knownIssueCount: docs.reduce((sum, d) => sum + d.knownIssues.length, 0),
-    auditCount:     audits.length,
+    auditCount:      audits.length,
   };
 
   return { docs, audits, startup, graph, summary };
+}
+
+function readDocs(mddDir: string): MddDocSummary[] {
+  const docsDir = join(mddDir, 'docs');
+  if (!existsSync(docsDir)) return [];
+
+  let filenames: string[] = [];
+  try { filenames = readdirSync(docsDir).filter(f => f.endsWith('.md') && !f.startsWith('.')); }
+  catch { return []; }
+
+  filenames.sort((a, b) => {
+    const na = parseInt(a, 10) || 0;
+    const nb = parseInt(b, 10) || 0;
+    return na !== nb ? na - nb : a.localeCompare(b);
+  });
+
+  const docs: MddDocSummary[] = [];
+  for (const filename of filenames) {
+    try {
+      const raw = readFileSync(join(docsDir, filename), 'utf-8');
+      const fm  = parseMddFrontmatter(raw);
+      const drift = classifyDrift(fm.lastSynced, fm.sourceFiles, process.cwd());
+      docs.push({
+        filename,
+        id:               fm.id || filename.replace(/\.md$/, ''),
+        title:            fm.title,
+        status:           fm.status,
+        phase:            fm.phase,
+        lastSynced:       fm.lastSynced,
+        dependsOn:        fm.dependsOn,
+        sourceFiles:      fm.sourceFiles,
+        knownIssues:      fm.knownIssues,
+        body:             fm.body,
+        drift:            drift.drift,
+        driftCommitCount: drift.driftCommitCount,
+        driftLatestMsg:   drift.driftLatestMsg,
+      });
+    } catch { /* skip unreadable */ }
+  }
+  return docs;
+}
+
+function readAudits(mddDir: string): MddAuditFile[] {
+  const auditsDir = join(mddDir, 'audits');
+  if (!existsSync(auditsDir)) return [];
+
+  let filenames: string[] = [];
+  try { filenames = readdirSync(auditsDir).filter(f => f.endsWith('.md') && !f.startsWith('.')); }
+  catch { return []; }
+
+  const audits: MddAuditFile[] = [];
+  for (const filename of filenames) {
+    try {
+      const body = readFileSync(join(auditsDir, filename), 'utf-8');
+      audits.push({ filename, date: extractDateFromFilename(filename), type: detectAuditType(filename), body });
+    } catch { /* skip */ }
+  }
+
+  audits.sort((a, b) => b.date.localeCompare(a.date));
+  return audits;
+}
+
+function readStartup(mddDir: string): string {
+  const startupPath = join(mddDir, '.startup.md');
+  if (!existsSync(startupPath)) return '';
+  try { return readFileSync(startupPath, 'utf-8'); }
+  catch { return ''; }
 }
