@@ -210,6 +210,7 @@ export interface ProjectConfig {
   claudeMd: string | null;
   localClaudeMd: string | null;
   claudeMdLint?: ClaudeMdLint;
+  files: ClaudeFile[];
 }
 
 export interface PluginEntry {
@@ -246,9 +247,21 @@ export interface ProjectHealth {
   breakdown: ProjectHealthBreakdown;
 }
 
+export type ClaudeFileDir = 'agents' | 'commands' | 'hooks' | 'skills';
+
+export interface ClaudeFile {
+  name: string;
+  path: string;
+  dir: ClaudeFileDir;
+  content: string;
+}
+
+
 export interface ConfigsData {
   global: SettingsConfig | null;
   globalClaudeMd: string | null;
+  globalSettingsLocal: string | null;
+  globalFiles: ClaudeFile[];
   projects: ProjectConfig[];
   plugins: PluginEntry[];
   hookScripts?: HookScript[];

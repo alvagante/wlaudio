@@ -190,3 +190,79 @@
 .cfg-lint-warning    { display: flex; gap: 0.4rem; font-size: 0.67rem; color: var(--orange); margin-bottom: 0.3rem; line-height: 1.5; }
 .cfg-lint-suggestion { display: flex; gap: 0.4rem; font-size: 0.67rem; color: var(--blue);   margin-bottom: 0.3rem; line-height: 1.5; }
 .cfg-lint-warning:last-child, .cfg-lint-suggestion:last-child { margin-bottom: 0; }
+
+/* ── Files tag ───────────────────────────────────────────────────────────── */
+.cfg-tag.files { background: color-mix(in srgb, var(--teal) 13%, transparent); color: var(--teal); }
+
+/* ── Scope badge ─────────────────────────────────────────────────────────── */
+.cfg-scope-badge {
+  font-size: 0.55rem; font-weight: 700; letter-spacing: 0.1em;
+  padding: 0.1rem 0.4rem; border-radius: 3px; text-transform: uppercase;
+}
+.cfg-scope-badge.global  { background: color-mix(in srgb, var(--blue)  10%, transparent); color: var(--blue); }
+.cfg-scope-badge.project { background: color-mix(in srgb, var(--green) 10%, transparent); color: var(--green); }
+
+/* ── Files viewer ────────────────────────────────────────────────────────── */
+.cfg-files-viewer {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 0;
+  border: 1px solid var(--overlay);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-top: 0.75rem;
+  min-height: 200px;
+  max-height: 480px;
+}
+.cfg-files-viewer--project { max-height: 360px; }
+
+.cfg-files-list {
+  border-right: 1px solid var(--overlay);
+  overflow-y: auto;
+  background: var(--base);
+}
+.cfg-files-group-label {
+  font-size: 0.55rem; font-weight: 700; letter-spacing: 0.12em;
+  padding: 0.45rem 0.75rem 0.2rem;
+  text-transform: uppercase; border-bottom: 1px solid var(--surface2);
+}
+.cfg-dir-teal   { color: var(--teal); }
+.cfg-dir-blue   { color: var(--blue); }
+.cfg-dir-purple { color: var(--purple); }
+.cfg-dir-green  { color: var(--green); }
+.cfg-dir-dim    { color: var(--dim); }
+
+.cfg-file-item {
+  font-size: 0.68rem; padding: 0.4rem 0.75rem;
+  cursor: pointer; color: var(--subtext); word-break: break-all;
+  border-bottom: 1px solid var(--surface2);
+  transition: background 0.1s;
+}
+.cfg-file-item:last-child { border-bottom: none; }
+.cfg-file-item:hover  { background: var(--surface2); color: var(--text); }
+.cfg-file-item.active { background: var(--overlay); color: var(--text); }
+
+.cfg-files-content {
+  overflow-y: auto;
+  background: var(--surface2);
+}
+.cfg-files-placeholder {
+  display: flex; align-items: center; justify-content: center;
+  height: 100%; color: var(--dim); font-size: 0.7rem; padding: 2rem;
+}
+.cfg-file-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.5rem 0.85rem; border-bottom: 1px solid var(--overlay);
+  background: var(--surface); flex-shrink: 0;
+}
+.cfg-file-path {
+  font-size: 0.62rem; color: var(--dim); word-break: break-all; line-height: 1.4; flex: 1;
+}
+.cfg-file-meta {
+  font-size: 0.58rem; color: var(--dim); white-space: nowrap; margin-left: 0.75rem; flex-shrink: 0;
+}
+.cfg-file-pre {
+  margin: 0; padding: 0.85rem;
+  font-size: 0.68rem; line-height: 1.6; color: var(--subtext);
+  white-space: pre-wrap; word-break: break-word;
+}

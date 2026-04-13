@@ -278,6 +278,7 @@ function renderProjects(projects) {
       (allowCount + denyCount) ? `<span class="cfg-tag perms">${allowCount + denyCount} rules</span>` : '',
       p.claudeMd  ? `<span class="cfg-tag md">CLAUDE.md</span>`                   : '',
       p.localClaudeMd ? `<span class="cfg-tag local-md">CLAUDE.local.md</span>`   : '',
+      p.files?.length ? `<span class="cfg-tag files">${p.files.length} files</span>` : '',
     ].filter(Boolean).join('');
 
     block.innerHTML = `
@@ -304,6 +305,10 @@ function renderProjects(projects) {
       if (!isOpen && !body.dataset.rendered) {
         body.dataset.rendered = '1';
         body.innerHTML = buildProjectBody(p);
+        if (p.files?.length) {
+          const slug = projectBodySlug(p.projectPath);
+          renderFilesViewer(p.files, `pf-list-${slug}`, `pf-content-${slug}`);
+        }
       }
     });
 
@@ -380,7 +385,105 @@ function buildProjectBody(p) {
     parts.push(`<pre class="cfg-md-pre">${escHtml(p.localClaudeMd)}</pre>`);
   }
 
+  if (p.files?.length) {
+    const slug = projectBodySlug(p.projectPath);
+    parts.push(`
+      <div class="cfg-sub-title">
+        Files <span class="cfg-badge">${p.files.length}</span>
+        <span class="cfg-scope-badge project">project</span>
+      </div>
+      <div class="cfg-files-viewer cfg-files-viewer--project">
+        <div class="cfg-files-list" id="pf-list-${escHtml(slug)}"></div>
+        <div class="cfg-files-content" id="pf-content-${escHtml(slug)}">
+          <div class="cfg-files-placeholder">Select a file to view its content</div>
+        </div>
+      </div>
+    `);
+  }
+
   return parts.join('');
+}
+
+function projectBodySlug(projectPath) {
+  return projectPath.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').slice(-60);
+}
+
+// ── File viewer (global + per-project) ───────────────────────────────────
+
+const DIR_LABELS = { agents: 'AGENTS', commands: 'COMMANDS', hooks: 'HOOKS', skills: 'SKILLS' };
+const DIR_COLORS = { agents: 'teal', commands: 'blue', hooks: 'purple', skills: 'green' };
+
+function renderFilesViewer(files, listId, contentId) {
+  const listEl    = document.getElementById(listId);
+  const contentEl = document.getElementById(contentId);
+  if (!listEl || !contentEl) return;
+
+  if (!files?.length) {
+    listEl.innerHTML    = '<div class="cfg-empty">No files found</div>';
+    contentEl.innerHTML = '';
+    return;
+  }
+
+  // Group by dir
+  const byDir = {};
+  for (const f of files) {
+    if (!byDir[f.dir]) byDir[f.dir] = [];
+    byDir[f.dir].push(f);
+  }
+
+  let html = '';
+  let globalIndex = 0;
+  const indexedFiles = [];
+
+  for (const [dir, dirFiles] of Object.entries(byDir)) {
+    const label = DIR_LABELS[dir] ?? dir.toUpperCase();
+    const color = DIR_COLORS[dir] ?? 'dim';
+    html += `<div class="cfg-files-group-label cfg-dir-${color}">${label}</div>`;
+    for (const f of dirFiles) {
+      html += `<div class="cfg-file-item" data-index="${globalIndex}">${escHtml(f.name)}</div>`;
+      indexedFiles.push(f);
+      globalIndex++;
+    }
+  }
+
+  listEl.innerHTML = html;
+
+  function selectFile(index) {
+    listEl.querySelectorAll('.cfg-file-item').forEach(el => el.classList.remove('active'));
+    listEl.querySelector(`[data-index="${index}"]`)?.classList.add('active');
+    const f = indexedFiles[index];
+    if (!f) return;
+    const ext = f.name.split('.').pop() ?? '';
+    const lineCount = f.content.split('\n').length;
+    contentEl.innerHTML = `
+      <div class="cfg-file-header">
+        <span class="cfg-file-path">${escHtml(f.path)}</span>
+        <span class="cfg-file-meta">${lineCount} lines · .${escHtml(ext)}</span>
+      </div>
+      <pre class="cfg-file-pre">${escHtml(f.content)}</pre>
+    `;
+  }
+
+  listEl.querySelectorAll('.cfg-file-item').forEach(el => {
+    el.addEventListener('click', () => selectFile(Number(el.dataset.index)));
+  });
+
+  selectFile(0);
+}
+
+function renderGlobalFiles(files) {
+  const section  = document.getElementById('cfg-global-files-section');
+  const countEl  = document.getElementById('cfg-global-files-count');
+  if (!section) return;
+
+  countEl.textContent = files?.length ?? 0;
+
+  if (!files?.length) {
+    section.classList.add('hidden');
+    return;
+  }
+
+  renderFilesViewer(files, 'cfg-global-files-list', 'cfg-global-files-content');
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────
@@ -410,6 +513,7 @@ async function init() {
   renderClaudeMdLint(data.globalClaudeMdLint, 'cfg-global-md-lint');
   renderHookScripts(data.hookScripts ?? []);
   renderSkills(data.skills ?? []);
+  renderGlobalFiles(data.globalFiles);
   renderProjects(data.projects);
 
   initExpandables();

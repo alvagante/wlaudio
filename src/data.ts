@@ -1,7 +1,7 @@
-import { readFileSync, readdirSync, existsSync, openSync, readSync, closeSync } from 'fs';
+import { readFileSync, readdirSync, existsSync, statSync, openSync, readSync, closeSync } from 'fs';
 import { join } from 'path';
 import { CLAUDE_DIR } from './parser.js';
-import type { HistoryEntry, TodoItem, Plan, ClaudeSettings, SessionMeta, SessionFacets, SettingsConfig, ProjectConfig, PluginEntry, ConfigsData, HookEntry, HookScript, SkillEntry } from './types/index.js';
+import type { HistoryEntry, TodoItem, Plan, ClaudeSettings, SessionMeta, SessionFacets, SettingsConfig, ProjectConfig, PluginEntry, ConfigsData, HookEntry, HookScript, SkillEntry, ClaudeFile, ClaudeFileDir } from './types/index.js';
 
 export function loadHistory(): HistoryEntry[] {
   const path = join(CLAUDE_DIR, 'history.jsonl');
@@ -267,9 +267,36 @@ function readFileSafe(path: string): string | null {
   try { return readFileSync(path, 'utf-8'); } catch { return null; }
 }
 
+const MAX_FILE_BYTES = 512 * 1024;
+const CLAUDE_SUBDIRS: ClaudeFileDir[] = ['agents', 'commands', 'hooks', 'skills'];
+
+export function loadClaudeFilesForDir(claudeDir: string, dirName: ClaudeFileDir): ClaudeFile[] {
+  const subdir = join(claudeDir, dirName);
+  if (!existsSync(subdir)) return [];
+  try {
+    return readdirSync(subdir)
+      .sort()
+      .flatMap(filename => {
+        const filePath = join(subdir, filename);
+        try {
+          const stat = statSync(filePath);
+          if (!stat.isFile() || stat.size > MAX_FILE_BYTES) return [];
+          const content = readFileSync(filePath, 'utf-8');
+          return [{ name: filename, path: filePath, dir: dirName, content }];
+        } catch {
+          return [];
+        }
+      });
+  } catch {
+    return [];
+  }
+}
+
 export function loadConfigs(): ConfigsData {
-  const global         = parseSettingsFile(join(CLAUDE_DIR, 'settings.json'));
-  const globalClaudeMd = readFileSafe(join(CLAUDE_DIR, 'CLAUDE.md'));
+  const global               = parseSettingsFile(join(CLAUDE_DIR, 'settings.json'));
+  const globalClaudeMd       = readFileSafe(join(CLAUDE_DIR, 'CLAUDE.md'));
+  const globalSettingsLocal  = readFileSafe(join(CLAUDE_DIR, 'settings.local.json'));
+  const globalFiles          = CLAUDE_SUBDIRS.flatMap(d => loadClaudeFilesForDir(CLAUDE_DIR, d));
 
   // Plugins
   let plugins: PluginEntry[] = [];
@@ -294,20 +321,22 @@ export function loadConfigs(): ConfigsData {
   const projects: ProjectConfig[] = [...projectPaths]
     .sort()
     .map(projectPath => {
+      const claudeSubdir = join(projectPath, '.claude');
       const projectName = projectPath.split('/').filter(Boolean).pop() ?? projectPath;
       return {
         projectPath,
         projectName,
-        settings:      parseSettingsFile(join(projectPath, '.claude', 'settings.json')),
+        settings:      parseSettingsFile(join(claudeSubdir, 'settings.json')),
         claudeMd:      readFileSafe(join(projectPath, 'CLAUDE.md'))
-                    ?? readFileSafe(join(projectPath, '.claude', 'CLAUDE.md')),
+                    ?? readFileSafe(join(claudeSubdir, 'CLAUDE.md')),
         localClaudeMd: readFileSafe(join(projectPath, 'CLAUDE.local.md'))
-                    ?? readFileSafe(join(projectPath, '.claude', 'CLAUDE.local.md')),
+                    ?? readFileSafe(join(claudeSubdir, 'CLAUDE.local.md')),
+        files:         CLAUDE_SUBDIRS.flatMap(d => loadClaudeFilesForDir(claudeSubdir, d)),
       };
     })
-    .filter(p => p.settings !== null || p.claudeMd !== null || p.localClaudeMd !== null);
+    .filter(p => p.settings !== null || p.claudeMd !== null || p.localClaudeMd !== null || p.files.length > 0);
 
-  return { global, globalClaudeMd, projects, plugins };
+  return { global, globalClaudeMd, globalSettingsLocal, globalFiles, projects, plugins };
 }
 
 // ── Hook scripts ───────────────────────────────────────────────────────────
