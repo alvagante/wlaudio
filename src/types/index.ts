@@ -268,6 +268,7 @@ export type WsEventType =
   | 'todos_updated'
   | 'plans_updated'
   | 'meta_updated'
+  | 'mdd_updated'
   | 'terminal:output'
   | 'terminal:exit';
 
@@ -360,4 +361,75 @@ export interface TodosUpdatedData {
 
 export interface PlansUpdatedData {
   plans: Plan[];
+}
+
+// ── MDD Dashboard types ────────────────────────────────────────────────────
+
+export type MddDriftStatus = 'in_sync' | 'drifted' | 'broken_ref' | 'untracked';
+
+export type MddDocStatus = 'draft' | 'in_progress' | 'complete' | 'deprecated';
+
+export type MddAuditType =
+  | 'report'
+  | 'scan'
+  | 'flow'
+  | 'notes'
+  | 'results'
+  | 'update-notes'
+  | 'graph'
+  | 'unknown';
+
+export type MddDepRisk = 'ok' | 'risky' | 'broken';
+
+export interface MddDocSummary {
+  filename: string;
+  id: string;
+  title: string;
+  status: MddDocStatus | string;
+  phase: string;
+  lastSynced: string;
+  dependsOn: string[];
+  sourceFiles: string[];
+  knownIssues: string[];
+  body: string;
+  drift: MddDriftStatus;
+  driftCommitCount: number;
+  driftLatestMsg: string;
+}
+
+export interface MddAuditFile {
+  filename: string;
+  date: string;
+  type: MddAuditType;
+  body: string;
+}
+
+export interface MddDepEdge {
+  from: string;
+  to: string;
+  risk: MddDepRisk;
+}
+
+export interface MddGraph {
+  edges: MddDepEdge[];
+  orphans: string[];
+  ascii: string;
+}
+
+export interface MddSummary {
+  docCount: number;
+  inSync: number;
+  drifted: number;
+  brokenRef: number;
+  untracked: number;
+  knownIssueCount: number;
+  auditCount: number;
+}
+
+export interface MddDashboardResponse {
+  docs: MddDocSummary[];
+  audits: MddAuditFile[];
+  startup: string;
+  graph: MddGraph;
+  summary: MddSummary;
 }

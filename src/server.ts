@@ -5,6 +5,7 @@ import { join, dirname, resolve, basename } from 'path';
 import { fileURLToPath } from 'url';
 import { readFileSync, existsSync } from 'fs';
 import { emitter, getAllSessionStates, getSessionState, startWatcher } from './watcher.js';
+import { buildMddDashboard } from './mdd.js';
 import { loadGlobalStats, parseSessionTurns, encodePath, CLAUDE_DIR } from './parser.js';
 import { loadHistory, loadAllTodos, loadPlans, loadSettings, loadAllSessionMetas, loadOrphanSessionMetas, loadAllSessionFacets, loadConfigs, loadHookScripts, loadSkillsAndCommands } from './data.js';
 import { computeProjectHealth } from './health.js';
@@ -417,6 +418,15 @@ app.get('/api/v1/session-files', (req, res) => {
   res.json(files);
 });
 
+// ── MDD Dashboard endpoint ─────────────────────────────────────────────────
+
+const MDD_DIR = join(process.cwd(), '.mdd');
+
+app.get('/api/v1/mdd', (_req, res) => {
+  const data = buildMddDashboard(MDD_DIR);
+  res.json(data);
+});
+
 // ── Terminal REST endpoints ────────────────────────────────────────────────
 
 app.get('/api/v1/terminals', (_req, res) => {
@@ -609,6 +619,10 @@ emitter.on('plans:updated', (plans: Plan[]) => {
 emitter.on('meta:updated', (sessionMeta: Record<string, SessionMeta>, sessionFacets: Record<string, SessionFacets>) => {
   const data: MetaUpdatedData = { sessionMeta, sessionFacets };
   broadcast({ type: 'meta_updated', data });
+});
+
+emitter.on('mdd:updated', () => {
+  broadcast({ type: 'mdd_updated', data: null });
 });
 
 // ── Helpers ────────────────────────────────────────────────────────────────
