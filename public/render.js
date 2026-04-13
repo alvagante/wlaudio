@@ -1,11 +1,11 @@
 // ── Session detail: metrics, charts, timeline, prompts, tasks ─────────────
 import {
   TAG_COLORS, fmtTokens, fmtDuration, fmtMs,
-  fmtToolInput, fmtTimestamp, toolColor, escHtml,
+  fmtToolInput, fmtTimestamp, toolColor, escHtml, renderUserContent,
 } from './utils.js';
 
 let tokenChart  = null;
-let activeTab   = 'tools';
+let activeTab   = 'timeline';
 let _popupTurns = [];   // current session turns — used by tool popup
 
 // ── Tabs ───────────────────────────────────────────────────────────────────
@@ -397,6 +397,49 @@ function buildToolRow(tc, isSidechain) {
   `;
   row.addEventListener('click', () => showSingleCallPopup(tc));
   return row;
+}
+
+// ── Chat-style session timeline (tab-timeline) ─────────────────────────────
+
+export function resetSessionTimeline() {
+  const el = document.getElementById('session-timeline');
+  if (el) el.innerHTML = '';
+}
+
+export function appendTurnsToSessionTimeline(turns) {
+  const el = document.getElementById('session-timeline');
+  if (!el) return;
+  for (const turn of turns) {
+    if (turn.type === 'user' && turn.text) {
+      const bubble = document.createElement('div');
+      bubble.className = 'tl-bubble--user';
+      bubble.innerHTML = `
+        <div class="tl-time">${escHtml(fmtTimestamp(turn.timestamp))}</div>
+        <div class="tl-user-content">${renderUserContent(turn.text)}</div>
+      `;
+      el.appendChild(bubble);
+    }
+    for (const tc of turn.toolCalls ?? []) {
+      const color   = toolColor(tc.name);
+      const isError = tc.result?.isError ?? false;
+      const desc    = fmtToolInput(tc.name, tc.input ?? {});
+      const dur     = tc.durationMs != null ? `${tc.durationMs}ms` : '—';
+      const time    = fmtTimestamp(tc.timestamp);
+      const row = document.createElement('div');
+      row.className = `tl-tool-row${isError ? ' tl-tool-row--error' : ''}`;
+      row.innerHTML = `
+        <span class="tl-tr-status ${isError ? 'tl-err' : 'tl-ok'}">${isError ? '✗' : '✓'}</span>
+        <span class="tl-tr-time">${escHtml(time)}</span>
+        <span class="tl-tr-dur">${escHtml(dur)}</span>
+        <span class="tl-tr-name" style="color:${color}">
+          <span class="tl-tool-dot" style="background:${color}"></span>${escHtml(tc.name)}
+        </span>
+        ${desc ? `<span class="tl-tr-desc">${escHtml(desc.slice(0, 100))}</span>` : ''}
+      `;
+      el.appendChild(row);
+    }
+  }
+  el.scrollTop = el.scrollHeight;
 }
 
 // ── Prompts panel ──────────────────────────────────────────────────────────

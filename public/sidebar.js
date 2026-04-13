@@ -17,10 +17,9 @@ export function renderSidebar(sessions, stats, selectedId, onSelect, completed =
     list.appendChild(buildSessionItem(id, session, stats.get(id), selectedId, onSelect, false, facets[id] ?? null, meta[id] ?? null));
   }
 
-  // Completed sessions (up to 15, most recent first)
+  // Completed sessions, most recent first
   const completedEntries = [...completed.entries()]
-    .sort((a, b) => (b[1].endedAt ?? 0) - (a[1].endedAt ?? 0))
-    .slice(0, 15);
+    .sort((a, b) => (b[1].endedAt ?? 0) - (a[1].endedAt ?? 0));
 
   if (completedEntries.length > 0 && sessions.size > 0) {
     const sep = document.createElement('div');

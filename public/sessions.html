@@ -8,6 +8,7 @@
   <script src="theme.js"></script>
   <link rel="stylesheet" href="themes.css" />
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="timeline.css" />
 </head>
 <body>
 
@@ -127,13 +128,15 @@
           </div>
 
           <div class="tab-bar">
-            <button class="tab active" data-tab="tools">TOOLS <span id="timeline-count" class="badge">0</span></button>
+            <button class="tab active" data-tab="timeline">TIMELINE</button>
+            <button class="tab" data-tab="tools">TOOLS <span id="timeline-count" class="badge">0</span></button>
             <button class="tab" data-tab="prompts">PROMPTS <span id="prompts-count" class="badge">0</span></button>
             <button class="tab" data-tab="tasks">TASKS <span id="tasks-count" class="badge">0</span></button>
             <button class="tab" data-tab="files">FILES <span id="fileops-count" class="badge">0</span></button>
           </div>
 
-          <div id="tab-tools" class="tab-content"><div id="timeline" class="timeline"></div></div>
+          <div id="tab-timeline" class="tab-content"><div id="session-timeline" class="tl-timeline"></div></div>
+          <div id="tab-tools" class="tab-content hidden"><div id="timeline" class="timeline"></div></div>
           <div id="tab-prompts" class="tab-content hidden"><div id="prompts-list" class="prompts-list"></div></div>
           <div id="tab-tasks" class="tab-content hidden"><div id="tasks-list" class="tasks-list"></div></div>
           <div id="tab-files" class="tab-content hidden">

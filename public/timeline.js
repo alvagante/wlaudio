@@ -1,7 +1,7 @@
 // ── Session Timeline page ─────────────────────────────────────────────────
 // Loaded as type="module" — can import from utils.js
 
-import { fmtToolInput, toolColor, escHtml, fmtMs, fmtTimestamp, fmtDuration, timeAgo } from './utils.js';
+import { fmtToolInput, toolColor, escHtml, fmtMs, fmtTimestamp, fmtDuration, timeAgo, renderUserContent } from './utils.js';
 
 // ── State ─────────────────────────────────────────────────────────────────
 
@@ -121,8 +121,8 @@ function renderTimeline() {
     return;
   }
 
-  const meta   = allMeta[selectedId];
-  const items  = [];
+  const meta  = allMeta[selectedId];
+  const items = [];
 
   for (const turn of turns) {
     if (turn.type === 'user' && filters.userMsgs) {
@@ -131,7 +131,7 @@ function renderTimeline() {
         items.push(`
           <div class="tl-bubble--user">
             <div class="tl-time">${escHtml(fmtTimestamp(turn.timestamp))}</div>
-            <div>${escHtml(promptText)}</div>
+            <div class="tl-user-content">${renderUserContent(promptText)}</div>
           </div>
         `);
       }
@@ -141,7 +141,7 @@ function renderTimeline() {
       for (const tc of turn.toolCalls) {
         if (filters.errors && !(tc.result?.isError)) continue;
         if (!filters.tools) continue;
-        items.push(renderToolCard(tc));
+        items.push(renderToolRow(tc));
       }
     }
   }
@@ -159,9 +159,7 @@ function renderTimeline() {
 }
 
 function getUserPrompt(turn) {
-  // Use text stored directly on the turn (from JSONL parser)
   if (turn.text) return turn.text;
-  // Fall back to history match by timestamp proximity (legacy/incomplete sessions)
   const turnTime = new Date(turn.timestamp).getTime();
   const closest  = allHistory
     .filter(h => h.sessionId === selectedId && Math.abs(h.timestamp - turnTime) < 10000)
@@ -169,24 +167,22 @@ function getUserPrompt(turn) {
   return closest?.display ?? '';
 }
 
-function renderToolCard(tc) {
+function renderToolRow(tc) {
   const color   = toolColor(tc.name);
   const isError = tc.result?.isError ?? false;
   const desc    = fmtToolInput(tc.name, tc.input ?? {});
-  const dur     = tc.durationMs != null ? fmtMs(tc.durationMs) : null;
+  const dur     = tc.durationMs != null ? `${tc.durationMs}ms` : '—';
+  const time    = fmtTimestamp(tc.timestamp);
 
   return `
-    <div class="tl-card--tool${isError ? ' tl-card--error' : ''}">
-      <div class="tl-time">${escHtml(fmtTimestamp(tc.timestamp))}</div>
-      <div class="tl-tool-name">
-        <span class="tl-tool-dot" style="background:${color}"></span>
-        ${escHtml(tc.name)}
-      </div>
-      ${desc ? `<div class="tl-tool-desc">${escHtml(truncate(desc, 120))}</div>` : ''}
-      <div class="tl-tool-meta">
-        <span class="${isError ? 'tl-err' : 'tl-ok'}">${isError ? '✗ error' : '✓ ok'}</span>
-        ${dur ? `<span>${escHtml(dur)}</span>` : ''}
-      </div>
+    <div class="tl-tool-row${isError ? ' tl-tool-row--error' : ''}">
+      <span class="tl-tr-status ${isError ? 'tl-err' : 'tl-ok'}">${isError ? '✗' : '✓'}</span>
+      <span class="tl-tr-time">${escHtml(time)}</span>
+      <span class="tl-tr-dur">${escHtml(dur)}</span>
+      <span class="tl-tr-name" style="color:${color}">
+        <span class="tl-tool-dot" style="background:${color}"></span>${escHtml(tc.name)}
+      </span>
+      ${desc ? `<span class="tl-tr-desc">${escHtml(truncate(desc, 100))}</span>` : ''}
     </div>
   `;
 }
@@ -267,7 +263,6 @@ async function init() {
   const urlId = new URLSearchParams(location.search).get('session');
   if (urlId && allSessions.find(s => s.sessionId === urlId)) {
     selectSession(urlId);
-    // Scroll item into view
     setTimeout(() => {
       document.querySelector('.tl-session-item.active')?.scrollIntoView({ block: 'nearest' });
     }, 50);

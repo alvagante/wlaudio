@@ -94,3 +94,69 @@ export function escHtml(s) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 }
+
+// ── User content rendering (markdown / JSON) ───────────────────────────────
+
+function looksLikeJSON(text) {
+  const t = text.trim();
+  if ((t.startsWith('{') && t.endsWith('}')) || (t.startsWith('[') && t.endsWith(']'))) {
+    try { JSON.parse(t); return true; } catch { /* fall through */ }
+  }
+  return false;
+}
+
+function looksLikeMarkdown(text) {
+  return /^#{1,3}\s|^[-*]\s|\*\*.+\*\*|`[^`]+`|```/m.test(text);
+}
+
+function inlineMarkdown(text) {
+  let s = escHtml(text);
+  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/\*(.+?)\*/g,     '<em>$1</em>');
+  s = s.replace(/`([^`]+)`/g,     '<code>$1</code>');
+  return s;
+}
+
+function renderMarkdown(text) {
+  const parts = text.split(/(```[\s\S]*?```)/g);
+  return parts.map((part, i) => {
+    if (i % 2 === 1) {
+      const inner = part.replace(/^```[^\n]*\n?/, '').replace(/```$/, '');
+      return `<pre><code>${escHtml(inner)}</code></pre>`;
+    }
+    const lines  = part.split('\n');
+    const result = [];
+    let inList   = false;
+    for (const line of lines) {
+      const hMatch  = line.match(/^(#{1,3})\s+(.+)/);
+      const liMatch = line.match(/^[-*]\s+(.+)/);
+      if (hMatch) {
+        if (inList) { result.push('</ul>'); inList = false; }
+        result.push(`<h${hMatch[1].length}>${inlineMarkdown(hMatch[2])}</h${hMatch[1].length}>`);
+      } else if (liMatch) {
+        if (!inList) { result.push('<ul>'); inList = true; }
+        result.push(`<li>${inlineMarkdown(liMatch[1])}</li>`);
+      } else if (!line.trim()) {
+        if (inList) { result.push('</ul>'); inList = false; }
+      } else {
+        if (inList) { result.push('</ul>'); inList = false; }
+        result.push(`<p>${inlineMarkdown(line)}</p>`);
+      }
+    }
+    if (inList) result.push('</ul>');
+    return result.join('');
+  }).join('');
+}
+
+/** Render user message content: pretty-prints JSON, renders markdown, or plain text. XSS-safe. */
+export function renderUserContent(text) {
+  if (!text) return '';
+  if (looksLikeJSON(text)) {
+    try {
+      const formatted = JSON.stringify(JSON.parse(text), null, 2);
+      return `<pre class="tl-json"><code>${escHtml(formatted)}</code></pre>`;
+    } catch { /* fall through */ }
+  }
+  if (looksLikeMarkdown(text)) return renderMarkdown(text);
+  return escHtml(text).replace(/\n/g, '<br>');
+}
