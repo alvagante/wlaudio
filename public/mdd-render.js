@@ -117,17 +117,25 @@ export function renderAuditList() {
 }
 
 export function renderGraph() {
-  const pre = el('mdd-graph-pre');
-  if (!pre) return;
+  const body = el('mdd-graph-body');
+  if (!body) return;
 
   const { ascii, orphans } = appState.graph;
 
   if (!ascii && !orphans?.length) {
-    pre.textContent = '';
-    pre.parentElement.innerHTML = '<div class="mdd-graph-empty">No dependencies between features</div>';
+    body.innerHTML = '<div class="mdd-graph-empty">No dependencies between features</div>';
     return;
   }
 
+  // Re-create pre if it was replaced by the empty-state message on a previous render
+  let pre = el('mdd-graph-pre');
+  if (!pre) {
+    pre = document.createElement('pre');
+    pre.id = 'mdd-graph-pre';
+    pre.className = 'mdd-graph-pre';
+    body.innerHTML = '';
+    body.appendChild(pre);
+  }
   pre.textContent = ascii || '(no graph data)';
 }
 

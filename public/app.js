@@ -67,13 +67,14 @@ function onInitialState({ activeSessions, sessionStats, turns, globalStats, hist
   // Populate completed sessions from session-meta for non-active sessions
   const activeIds = new Set(activeSessions.map(s => s.sessionId));
   const metas = Object.values(state.meta)
-    .filter(m => !activeIds.has(m.sessionId) && m.projectPath && m.startTime)
-    .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+    .filter(m => !activeIds.has(m.sessionId))
+    .sort((a, b) => new Date(b.startTime ?? 0).getTime() - new Date(a.startTime ?? 0).getTime());
   for (const m of metas) {
-    const endedAt   = new Date(m.startTime).getTime() + m.durationMinutes * 60_000;
+    const startMs  = m.startTime ? new Date(m.startTime).getTime() : 0;
+    const endedAt  = startMs + (m.durationMinutes ?? 0) * 60_000;
     const toolCount = Object.values(m.toolCounts ?? {}).reduce((a, b) => a + b, 0);
     state.completed.set(m.sessionId, {
-      session: { sessionId: m.sessionId, cwd: m.projectPath, startedAt: new Date(m.startTime).getTime(), kind: 'interactive', entrypoint: 'cli' },
+      session: { sessionId: m.sessionId, cwd: m.projectPath ?? '', startedAt: startMs, kind: 'interactive', entrypoint: 'cli' },
       endedAt,
     });
     // Build synthetic stats — token/cost data is not in metadata, so flag as unavailable
@@ -94,7 +95,7 @@ function onInitialState({ activeSessions, sessionStats, turns, globalStats, hist
 
   if (!state.selectedId) {
     const urlSession = new URLSearchParams(location.search).get('session');
-    if (urlSession && isSessionKnown(urlSession)) {
+    if (urlSession) {
       state.selectedId = urlSession;
     } else {
       state.selectedId = state.sessions.size > 0

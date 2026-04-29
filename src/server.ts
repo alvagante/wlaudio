@@ -51,6 +51,18 @@ const publicDir  = join(__dirname, '..', 'public');
 const app = express();
 const httpServer = createServer(app);
 
+// Restrict API routes to same-origin / localhost — blocks cross-site data leakage
+app.use('/api', (req, res, next) => {
+  const origin = req.headers['origin'];
+  // Allow requests with no Origin header (same-origin, curl, direct navigation)
+  if (!origin) return next();
+  try {
+    const host = new URL(origin).hostname;
+    if (host === 'localhost' || host === '127.0.0.1' || host === '::1') return next();
+  } catch { /* invalid Origin — fall through to reject */ }
+  res.status(403).json({ error: 'Forbidden' });
+});
+
 app.use(express.static(publicDir));
 
 app.get('/api/state', (_req, res) => {
@@ -400,6 +412,11 @@ app.get('/api/v1/session-files', (req, res) => {
   const cwd = String(req.query['cwd'] ?? '').trim();
   if (!cwd) { res.status(400).json({ error: 'cwd required' }); return; }
   const dir = resolve(cwd);
+  const home = process.env['HOME'] ?? '';
+  if (home && !dir.startsWith(home)) {
+    res.status(403).json({ error: 'Path outside home directory' });
+    return;
+  }
   const candidates = [
     { label: 'Global CLAUDE.md',              path: join(CLAUDE_DIR, 'CLAUDE.md') },
     { label: 'Global settings.json',          path: join(CLAUDE_DIR, 'settings.json') },

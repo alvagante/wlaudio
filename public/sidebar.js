@@ -73,7 +73,7 @@ function buildSessionItem(id, session, st, selectedId, onSelect, isCompleted, fa
   li.innerHTML = `
     <div class="si-header">
       <span class="si-dot${isCompleted ? ' si-dot-ended' : ''}"></span>
-      <span class="si-name">${projectName(session.cwd)}</span>
+      <span class="si-name">${escHtml(projectName(session.cwd))}</span>
       <span class="si-age">${timeAgo(session.startedAt)}</span>
     </div>
     <div class="si-tokens">${tok} tok &nbsp;<span class="si-cost">${cost}</span></div>
@@ -165,7 +165,7 @@ export function renderSettings(settings) {
   }
 
   const hookRows = Object.entries(settings.hookTypes)
-    .map(([k, v]) => `<div class="stat-row"><span class="dim">${k}</span><span>${v}</span></div>`)
+    .map(([k, v]) => `<div class="stat-row"><span class="dim">${escHtml(k)}</span><span>${escHtml(v)}</span></div>`)
     .join('');
 
   const allowCount = settings.allowedTools.length;

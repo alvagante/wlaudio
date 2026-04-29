@@ -1,5 +1,6 @@
 import chokidar from 'chokidar';
 import { EventEmitter } from 'events';
+import { existsSync } from 'fs';
 import { join } from 'path';
 import {
   loadActiveSessions,
@@ -122,12 +123,15 @@ export function startWatcher(): void {
     .on('change', broadcastMeta);
 
   // React to .mdd/ directory changes (docs, audits, startup)
+  // Guard: chokidar accepts non-existent paths silently on some platforms — be explicit.
   const mddDir = join(process.cwd(), '.mdd');
-  chokidar
-    .watch(mddDir, { ignoreInitial: true, depth: 3 })
-    .on('add',    () => emitter.emit('mdd:updated'))
-    .on('change', () => emitter.emit('mdd:updated'))
-    .on('unlink', () => emitter.emit('mdd:updated'));
+  if (existsSync(mddDir)) {
+    chokidar
+      .watch(mddDir, { ignoreInitial: true, depth: 3 })
+      .on('add',    () => emitter.emit('mdd:updated'))
+      .on('change', () => emitter.emit('mdd:updated'))
+      .on('unlink', () => emitter.emit('mdd:updated'));
+  }
 
   // Initial load
   syncSessions();
