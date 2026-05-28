@@ -1,6 +1,6 @@
 services:
   wlaudio:
-    build: .
+    image: lab42it/wlaudio:latest
     ports:
       - "4242:4242"
     volumes:

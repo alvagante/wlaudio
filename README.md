@@ -116,17 +116,37 @@ The terminal page (`/terminal.html`) is **enabled by default**. It spawns a logi
 
 ## Docker (no local install required)
 
-Run wlaudio without installing any dependencies on your machine:
+Pull the pre-built image from Docker Hub and run it — no git clone, no npm, no compilation:
 
 ```bash
-git clone git@github.com:alvagante/wlaudio.git
-cd wlaudio
+docker run --rm -p 4242:4242 \
+  -v "${HOME}/.claude:/root/.claude:ro" \
+  -e HOME=/root \
+  lab42it/wlaudio:latest
+```
+
+Or with Docker Compose — save a `docker-compose.yml` with:
+
+```yaml
+services:
+  wlaudio:
+    image: lab42it/wlaudio:latest
+    ports:
+      - "4242:4242"
+    volumes:
+      - "${HOME}/.claude:/root/.claude:ro"
+    environment:
+      - HOME=/root
+      - TERMINAL_ENABLED=0
+```
+
+Then run:
+
+```bash
 docker compose up
 ```
 
-Open **http://localhost:4242** — the dashboard reads your `~/.claude/` via a read-only volume mount.
-
-The image is built locally from the `Dockerfile`. All dependency installation and native module compilation happen inside the container — nothing touches your host system.
+Open **http://localhost:4242** — the dashboard reads your `~/.claude/` via a read-only volume mount. Nothing is installed on your host system.
 
 **What's available in Docker mode:**
 
@@ -138,14 +158,13 @@ The image is built locally from the `Dockerfile`. All dependency installation an
 
 The terminal feature requires spawning a shell with access to your host's `PATH` and `claude` binary, which is not practical inside a container. All other features work identically.
 
-**Manual `docker run` alternative (no compose):**
+**Building from source** (if you want to customise the image):
 
 ```bash
+git clone git@github.com:alvagante/wlaudio.git
+cd wlaudio
 docker build -t wlaudio .
-docker run --rm -p 4242:4242 \
-  -v "${HOME}/.claude:/root/.claude:ro" \
-  -e HOME=/root \
-  wlaudio
+docker run --rm -p 4242:4242 -v "${HOME}/.claude:/root/.claude:ro" -e HOME=/root wlaudio
 ```
 
 ---
