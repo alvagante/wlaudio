@@ -16,7 +16,9 @@
     "db:query": "tsx scripts/db-query.ts",
     "db:query:list": "tsx scripts/db-query.ts --list",
     "clean": "rm -rf dist coverage test-results",
-    "precommit": "tsc --noEmit"
+    "precommit": "tsc --noEmit",
+    "docker:build": "bash scripts/docker-publish.sh --dry-run",
+    "docker:publish": "bash scripts/docker-publish.sh"
   },
   "engines": {
     "node": ">=20.0.0"

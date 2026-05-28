@@ -2,6 +2,20 @@
 
 ## v0.6.0
 
+### Docker support
+
+- **`Dockerfile`** — two-stage build: `node:20-bullseye-slim` builder compiles TypeScript and native `node-pty` addon; clean runtime stage copies pre-built artifacts — no build tools in the final image
+- **`docker-compose.yml`** — one-command startup (`docker compose up`); mounts `~/.claude` read-only, exposes port 4242, sets `TERMINAL_ENABLED=0` (PTY spawning is impractical inside a container)
+- **`.dockerignore`** — excludes `node_modules/`, `dist/`, `.env`, `.git/` from the build context
+- **`scripts/docker-publish.sh`** — build and push to `lab42it/wlaudio`; reads version from `package.json`; supports `--dry-run`, `--version`, and `--platform` flags; uses `docker buildx` for multi-platform images (`linux/amd64` + `linux/arm64`)
+- **npm scripts** — `npm run docker:build` (dry-run local build) and `npm run docker:publish` (build + push)
+
+### Terminal enabled by default
+
+- Terminal feature (`/terminal.html`) is now **enabled by default** — set `TERMINAL_ENABLED=0` (or `false`) to disable
+- When disabled, a clear inline error message is shown in the terminal UI instead of silently ignoring create requests
+- README and server docs updated to reflect the new default
+
 ### MDD Dashboard (`/mdd.html`)
 
 - **New page** — visualise Manual-First Development docs and audit reports directly in the browser; reads `.mdd/docs/` and `.mdd/audits/` from the current working directory

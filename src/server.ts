@@ -458,7 +458,7 @@ app.get('/api/v1/terminals', (_req, res) => {
 
 // ── WebSocket server ───────────────────────────────────────────────────────
 
-const TERMINAL_ENABLED = process.env['TERMINAL_ENABLED'] === '1' || process.env['TERMINAL_ENABLED'] === 'true';
+const TERMINAL_ENABLED = process.env['TERMINAL_ENABLED'] !== '0' && process.env['TERMINAL_ENABLED'] !== 'false';
 
 const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 const clients = new Set<WebSocket>();
@@ -528,7 +528,13 @@ wss.on('connection', (ws, req) => {
 
     switch (msg.type) {
       case 'terminal:create': {
-        if (!TERMINAL_ENABLED) break;
+        if (!TERMINAL_ENABLED) {
+          if (isTerminalCreatePayload(msg.data) && ws.readyState === WebSocket.OPEN) {
+            const errPayload = { terminalId: msg.data.terminalId, data: '\r\n\x1b[31m[wlaudio] Terminal feature is disabled (TERMINAL_ENABLED=false). Remove that env var to enable it.\x1b[0m\r\n' };
+            ws.send(JSON.stringify({ type: 'terminal:output', data: errPayload }));
+          }
+          break;
+        }
         // Reject if Origin is missing or not localhost (prevents cross-site WS hijacking)
         if (!isLocalhostOrigin(req.headers['origin'])) break;
         if (!isTerminalCreatePayload(msg.data)) break;

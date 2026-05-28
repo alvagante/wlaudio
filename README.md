@@ -53,7 +53,7 @@ Chronological stream view of any session — select a session from the sidebar, 
 | **Multi-tab** | Open unlimited terminal tabs; each shows the project directory name |
 | **Project selector** | Pick a working directory from your project list or type any path; deep-linkable via `?cwd=` |
 | **Resize** | Terminal reflows to fill available space automatically |
-| **Security** | Disabled by default — set `TERMINAL_ENABLED=1` to enable; restricted to localhost origins |
+| **Security** | Enabled by default; set `TERMINAL_ENABLED=0` to disable; restricted to localhost origins |
 
 ### Analytics page (`/analytics.html`)
 
@@ -104,13 +104,49 @@ Open **http://localhost:4242** — the dashboard connects automatically and begi
 PORT=8080 npm run dev
 ```
 
-### With the terminal enabled
+### Disable the terminal
 
 ```bash
-TERMINAL_ENABLED=1 npm run dev
+TERMINAL_ENABLED=0 npm run dev
 ```
 
-The terminal page (`/terminal.html`) is disabled by default. When enabled it spawns a login shell via `node-pty` — only enable it when running locally on a trusted machine.
+The terminal page (`/terminal.html`) is **enabled by default**. It spawns a login shell via `node-pty` restricted to localhost origins — set `TERMINAL_ENABLED=0` if you want to disable it (e.g. when sharing the port on a non-trusted network).
+
+---
+
+## Docker (no local install required)
+
+Run wlaudio without installing any dependencies on your machine:
+
+```bash
+git clone git@github.com:alvagante/wlaudio.git
+cd wlaudio
+docker compose up
+```
+
+Open **http://localhost:4242** — the dashboard reads your `~/.claude/` via a read-only volume mount.
+
+The image is built locally from the `Dockerfile`. All dependency installation and native module compilation happen inside the container — nothing touches your host system.
+
+**What's available in Docker mode:**
+
+| Feature | Available |
+|---------|-----------|
+| Session dashboard, analytics, timeline | Yes |
+| Projects, configs, themes, MDD | Yes |
+| Terminal page (`/terminal.html`) | No — PTY spawning is disabled inside containers |
+
+The terminal feature requires spawning a shell with access to your host's `PATH` and `claude` binary, which is not practical inside a container. All other features work identically.
+
+**Manual `docker run` alternative (no compose):**
+
+```bash
+docker build -t wlaudio .
+docker run --rm -p 4242:4242 \
+  -v "${HOME}/.claude:/root/.claude:ro" \
+  -e HOME=/root \
+  wlaudio
+```
 
 ---
 
@@ -125,7 +161,7 @@ The terminal page (`/terminal.html`) is disabled by default. When enabled it spa
 1. **Watcher** (`src/watcher.ts`) — [chokidar](https://github.com/paulmillr/chokidar) watches `~/.claude/sessions/` for process changes. Every 2 seconds it tail-reads any active `.jsonl` files for new turns.
 2. **Parser** (`src/parser.ts`) — Parses JSONL turns, extracts tool calls with timing, computes token totals, and estimates cost.
 3. **Server** (`src/server.ts`) — Express serves `public/` as static files. A WebSocket endpoint at `/ws` broadcasts parsed events to all connected clients and handles terminal I/O messages.
-4. **Terminal** (`src/terminal.ts`) — `TerminalManager` wraps `node-pty` to spawn, resize, and kill PTY processes; emits `output` and `exit` events picked up by the WebSocket layer. Enabled via `TERMINAL_ENABLED=1`.
+4. **Terminal** (`src/terminal.ts`) — `TerminalManager` wraps `node-pty` to spawn, resize, and kill PTY processes; emits `output` and `exit` events picked up by the WebSocket layer. Enabled by default; set `TERMINAL_ENABLED=0` to disable.
 5. **Frontend** (`public/app.js`) — Vanilla JS with Chart.js (CDN). Reconnects automatically on disconnect. No build step.
 
 ---
