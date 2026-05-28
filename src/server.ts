@@ -4,6 +4,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { join, dirname, resolve, basename } from 'path';
 import { fileURLToPath } from 'url';
 import { readFileSync, existsSync } from 'fs';
+import { homedir } from 'os';
 import { emitter, getAllSessionStates, getSessionState, startWatcher } from './watcher.js';
 import { buildMddDashboard } from './mdd.js';
 import { loadGlobalStats, parseSessionTurns, encodePath, CLAUDE_DIR } from './parser.js';
@@ -442,6 +443,11 @@ const MDD_DIR = join(process.cwd(), '.mdd');
 app.get('/api/v1/mdd', (_req, res) => {
   const data = buildMddDashboard(MDD_DIR);
   res.json(data);
+});
+
+app.get('/api/v1/mdd/installed', (_req, res) => {
+  const mddCmd = join(homedir(), '.claude', 'commands', 'mdd.md');
+  res.json({ installed: existsSync(mddCmd) });
 });
 
 // ── Terminal REST endpoints ────────────────────────────────────────────────

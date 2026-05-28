@@ -30,6 +30,21 @@ Wlaudio reads directly from `~/.claude/` and streams live data to a browser dash
 | **CLAUDE FILES button** | View all config files affecting the session (global + project `CLAUDE.md`, `settings.json`, `settings.local.json`) with full filesystem paths; works for active and ended sessions |
 | **Global sparkline** | 14-day message activity bar chart from `stats-cache.json` |
 
+### MDD Dashboard (`/mdd.html`)
+
+Requires MDD to be installed globally (`~/.claude/commands/mdd.md`). Reads `.mdd/` from the project root.
+
+| Panel | Data |
+|-------|------|
+| **Status bar** | Doc counts by drift state: in-sync · drifted · broken ref · untracked |
+| **Docs list** | Feature docs with drift badge and phase; click to read full content |
+| **Audits list** | Audit reports by type (report · scan · flow · notes); click to read |
+| **Dependency graph** | Visual `depends_on` graph from MDD frontmatter |
+
+### Session Timeline (`/timeline.html`)
+
+Chronological stream view of any session — select a session from the sidebar, then browse every user message and tool call in order. Filter by errors, user messages, and tool calls independently.
+
 ### Terminal page (`/terminal.html`)
 
 | Feature | Detail |
@@ -60,11 +75,15 @@ Aggregated view per working directory. Select a project to see session count, to
 
 ### Configs page (`/configs.html`)
 
-Reads global and per-project `settings.json` files and renders MCP servers, hooks (grouped by event and matcher), allow/deny permission rules, and model overrides. Project cards show hook and rule counts at a glance.
+Reads global and per-project `settings.json` files and renders MCP servers, hooks (grouped by event and matcher), allow/deny permission rules, and model overrides. Project cards show hook and rule counts at a glance. A files panel lets you browse `CLAUDE.md`, `settings.json`, hook scripts, skills, and commands per project.
 
 ### Themes page (`/themes.html`)
 
 Live theme picker with 17 colour schemes — Catppuccin variants, Tokyo Night, Gruvbox, Nord, Dracula, Solarized, GitHub Light, and more. Click to apply; choice persists in `localStorage`.
+
+### Learning Mode
+
+A "Learn Mode" toggle in the sidebar (available on all pages) activates hover tooltips and click-to-expand detail panels for every major UI element. Useful for understanding what each metric means. Preference persists in `localStorage`.
 
 ---
 
@@ -135,6 +154,8 @@ wlaudio/
 │   ├── watcher.ts       chokidar file watcher + EventEmitter
 │   ├── server.ts        Express + WebSocket server
 │   ├── terminal.ts      PTY manager (node-pty wrapper)
+│   ├── mdd.ts           MDD dashboard builder (docs, audits, graph, drift)
+│   ├── mdd-parse.ts     MDD frontmatter parser
 │   ├── data.ts          Loaders for history, todos, plans, meta, facets
 │   └── index.ts         Entry point, graceful shutdown
 ├── public/
@@ -142,9 +163,11 @@ wlaudio/
 │   ├── sessions.html    Sessions browser
 │   ├── analytics.html   Cross-session analytics
 │   ├── projects.html    Per-project aggregates
-│   ├── configs.html     Settings viewer (MCP, hooks, permissions)
+│   ├── configs.html     Settings viewer (MCP, hooks, permissions, files)
 │   ├── themes.html      Theme picker
 │   ├── terminal.html    Browser terminal (xterm.js + node-pty)
+│   ├── timeline.html    Session timeline (messages + tool calls)
+│   ├── mdd.html         MDD dashboard (docs, audits, graph)
 │   ├── app.js           WebSocket client + state
 │   ├── dashboard.js     Dashboard rendering
 │   ├── render.js        Metrics, charts, tool timeline, popups
@@ -155,6 +178,12 @@ wlaudio/
 │   ├── projects.js      Projects page
 │   ├── configs.js       Configs page
 │   ├── terminal.js      Terminal page (xterm.js client)
+│   ├── timeline.js      Timeline page
+│   ├── mdd.js           MDD page entry point
+│   ├── mdd-render.js    MDD rendering (status bar, lists, graph, detail)
+│   ├── mdd-state.js     MDD page state
+│   ├── nav.js           Shared sidebar nav (all pages)
+│   ├── learning.js      Learning mode (tooltips + detail panels)
 │   ├── theme.js         Theme loader (no-flash)
 │   ├── utils.js         Shared formatters and helpers
 │   ├── shared.css       Shared palette, sidebar layout, utilities
@@ -163,7 +192,10 @@ wlaudio/
 │   ├── analytics.css    Analytics page styles
 │   ├── projects.css     Projects page styles
 │   ├── configs.css      Configs page styles
-│   └── terminal.css     Terminal page styles
+│   ├── terminal.css     Terminal page styles
+│   ├── timeline.css     Timeline page styles
+│   ├── mdd-layout.css   MDD page layout
+│   └── mdd-components.css MDD component styles
 └── docs/
     └── screenshot.png
 ```
