@@ -1,5 +1,64 @@
 # Changelog
 
+## v0.6.0
+
+### Docker support
+
+- **`Dockerfile`** — two-stage build: `node:20-bullseye-slim` builder compiles TypeScript and native `node-pty` addon; clean runtime stage copies pre-built artifacts — no build tools in the final image
+- **`docker-compose.yml`** — one-command startup (`docker compose up`); mounts `~/.claude` read-only, exposes port 4242, sets `TERMINAL_ENABLED=0` (PTY spawning is impractical inside a container)
+- **`.dockerignore`** — excludes `node_modules/`, `dist/`, `.env`, `.git/` from the build context
+- **`scripts/docker-publish.sh`** — build and push to `lab42it/wlaudio`; reads version from `package.json`; supports `--dry-run`, `--version`, and `--platform` flags; uses `docker buildx` for multi-platform images (`linux/amd64` + `linux/arm64`)
+- **npm scripts** — `npm run docker:build` (dry-run local build) and `npm run docker:publish` (build + push)
+
+### Terminal enabled by default
+
+- Terminal feature (`/terminal.html`) is now **enabled by default** — set `TERMINAL_ENABLED=0` (or `false`) to disable
+- When disabled, a clear inline error message is shown in the terminal UI instead of silently ignoring create requests
+- README and server docs updated to reflect the new default
+
+### MDD Dashboard (`/mdd.html`)
+
+- **New page** — visualise Manual-First Development docs and audit reports directly in the browser; reads `.mdd/docs/` and `.mdd/audits/` from the current working directory
+- **Status bar** — at-a-glance counts: total docs, in-sync, drifted, broken refs, and untracked files (via git)
+- **Docs list** — lists all feature docs with drift status badge and phase indicator; click any doc to read its full content in the detail panel
+- **Audits list** — lists audit reports by type (report · scan · flow · notes · results · update-notes · graph); click to read full content
+- **Dependency graph** — renders the `depends_on` graph from MDD frontmatter as a visual node map
+- **Live updates** — WebSocket `mdd_updated` event triggers automatic refresh when `.mdd/` directory contents change
+- **Backend** — `src/mdd.ts` (`buildMddDashboard`) and `src/mdd-parse.ts` (`parseMddFrontmatter`); new `GET /api/v1/mdd` endpoint
+
+### Session Timeline (`/timeline.html`)
+
+- **New page** — browse any session as a chronological stream of user messages and tool calls
+- **Session selector** — sidebar lists all sessions (active and ended) with project name, start time, and first prompt
+- **Timeline entries** — user messages render with full markdown; tool calls show name, arguments, duration, and truncated output
+- **Filters** — toggle-buttons to show/hide errors, user messages, and tool calls independently
+- **Error highlighting** — tool calls that returned errors are visually flagged
+
+### Learning Mode
+
+- **Toggle in sidebar** — "Learn Mode" ON/OFF button available on all pages
+- **Hover tooltips** — elements tagged with `data-tooltip` show a floating tooltip when learning mode is active
+- **Detail panels** — elements tagged with `data-learn-detail` open a named side panel with a longer explanation on click
+- **Persistence** — mode preference saved to `localStorage`; survives page reloads and navigation
+- Dashboard and sessions pages annotated with tooltips and detail panels for all major metrics
+
+### Configs page improvements
+
+- **Files viewer** — project config cards now include a file browser panel; browse `CLAUDE.md`, `settings.json`, `settings.local.json`, hook scripts, skills, and commands for each project with full content view
+
+### Navigation
+
+- **`nav.js`** — shared navigation module loaded by all pages; a single source of truth for sidebar links; active page detected automatically from `window.location.pathname`
+- **MDD link is conditional** — the MDD sidebar entry is shown only when `~/.claude/commands/mdd.md` exists (i.e. MDD is globally installed); hidden otherwise; checks via `GET /api/v1/mdd/installed`
+
+### Security & stability
+
+- Null-safety fixes across parser, watcher, and data loaders
+- Malformed or partially-written JSONL entries are skipped rather than crashing the parser
+- `CodeGraph` index initialised for faster codebase exploration during development
+
+---
+
 ## v0.5.0
 
 ### Terminal page (`/terminal.html`)

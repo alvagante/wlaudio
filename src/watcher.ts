@@ -1,5 +1,6 @@
 import chokidar from 'chokidar';
 import { EventEmitter } from 'events';
+import { existsSync } from 'fs';
 import { join } from 'path';
 import {
   loadActiveSessions,
@@ -33,6 +34,7 @@ interface WatcherEventMap {
   'todos:updated':   [todos: Record<string, TodoItem[]>];
   'plans:updated':   [plans: Plan[]];
   'meta:updated':    [meta: Record<string, SessionMeta>, facets: Record<string, SessionFacets>];
+  'mdd:updated':     [];
 }
 
 class WatcherEmitter extends EventEmitter {
@@ -119,6 +121,17 @@ export function startWatcher(): void {
     .watch([metaDir, facetsDir], { ignoreInitial: true, depth: 0 })
     .on('add',    broadcastMeta)
     .on('change', broadcastMeta);
+
+  // React to .mdd/ directory changes (docs, audits, startup)
+  // Guard: chokidar accepts non-existent paths silently on some platforms — be explicit.
+  const mddDir = join(process.cwd(), '.mdd');
+  if (existsSync(mddDir)) {
+    chokidar
+      .watch(mddDir, { ignoreInitial: true, depth: 3 })
+      .on('add',    () => emitter.emit('mdd:updated'))
+      .on('change', () => emitter.emit('mdd:updated'))
+      .on('unlink', () => emitter.emit('mdd:updated'));
+  }
 
   // Initial load
   syncSessions();

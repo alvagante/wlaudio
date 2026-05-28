@@ -18,17 +18,9 @@
       <div class="sidebar-logo">
         <a href="/themes.html" class="sb-logo-icon">⬡</a>
         <span class="sb-logo-text">WLAUDIO</span>
-        <span class="sb-version">0.5.0</span>
+        <span class="sb-version">0.6.0</span>
       </div>
-      <nav class="sidebar-nav">
-        <a href="/"               class="sn-link"><span class="sn-icon">▪</span>DASHBOARD</a>
-        <a href="/sessions.html"  class="sn-link"><span class="sn-icon">◈</span>SESSIONS</a>
-        <a href="/analytics.html" class="sn-link"><span class="sn-icon">◫</span>ANALYTICS</a>
-        <a href="/projects.html"  class="sn-link"><span class="sn-icon">◧</span>PROJECTS</a>
-        <a href="/configs.html"   class="sn-link active"><span class="sn-icon">◩</span>CONFIGS</a>
-        <a href="/themes.html"    class="sn-link"><span class="sn-icon">◐</span>THEMES</a>
-        <a href="/terminal.html"  class="sn-link"><span class="sn-icon">▷</span>TERMINAL</a>
-      </nav>
+      <nav id="sidebar-nav" class="sidebar-nav"></nav>
       <div class="sidebar-bottom"></div>
     </aside>
 
@@ -67,13 +59,37 @@
           <div id="cfg-plugins-list"></div>
         </div>
 
+        <div class="cfg-section" id="cfg-hook-scripts-section">
+          <div class="cfg-section-title">Hook Scripts <span id="cfg-hook-script-count" class="cfg-badge"></span></div>
+          <div id="cfg-hook-scripts"></div>
+        </div>
+
+        <div class="cfg-section" id="cfg-skills-section">
+          <div class="cfg-section-title">Skills &amp; Commands <span id="cfg-skills-count" class="cfg-badge"></span></div>
+          <div id="cfg-skills-list"></div>
+        </div>
+
         <div class="cfg-section" id="cfg-global-md-section">
           <div class="cfg-section-title cfg-expandable" data-target="cfg-global-md-body">
             <span>Global CLAUDE.md</span>
             <span class="cfg-expand-icon">▶</span>
           </div>
           <div id="cfg-global-md-body" class="hidden">
+            <div id="cfg-global-md-lint" class="cfg-lint-panel hidden"></div>
             <pre id="cfg-global-md" class="cfg-md-pre"></pre>
+          </div>
+        </div>
+
+        <div class="cfg-section" id="cfg-global-files-section">
+          <div class="cfg-section-title">
+            Files <span id="cfg-global-files-count" class="cfg-badge"></span>
+            <span class="cfg-scope-badge global">global</span>
+          </div>
+          <div id="cfg-global-files-viewer" class="cfg-files-viewer">
+            <div class="cfg-files-list" id="cfg-global-files-list"></div>
+            <div class="cfg-files-content" id="cfg-global-files-content">
+              <div class="cfg-files-placeholder">Select a file to view its content</div>
+            </div>
           </div>
         </div>
 
@@ -84,6 +100,8 @@
     </main>
   </div>
 
+  <script src="nav.js"></script>
+  <script src="learning.js"></script>
   <script src="configs.js"></script>
 
 </body>

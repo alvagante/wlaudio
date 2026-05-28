@@ -113,9 +113,122 @@ function renderPlugins(plugins) {
   `).join('');
 }
 
+// ── Hook scripts ──────────────────────────────────────────────────────────
+
+const HOOK_EVENT_COLORS = {
+  PreToolUse:   '#f9e2af',
+  PostToolUse:  '#89b4fa',
+  Stop:         '#a6e3a1',
+  Notification: '#fab387',
+  unknown:      '#585b70',
+};
+
+function hookEventBadge(eventHint) {
+  const color = HOOK_EVENT_COLORS[eventHint] ?? HOOK_EVENT_COLORS.unknown;
+  return `<span class="cfg-event-badge" style="color:${color};border-color:${color}">${escHtml(eventHint)}</span>`;
+}
+
+function renderHookScripts(hookScripts) {
+  const section  = document.getElementById('cfg-hook-scripts-section');
+  const list     = document.getElementById('cfg-hook-scripts');
+  const countEl  = document.getElementById('cfg-hook-script-count');
+
+  if (!section) return;
+  if (countEl) countEl.textContent = hookScripts?.length ?? 0;
+
+  if (!hookScripts?.length) {
+    section.classList.add('hidden');
+    return;
+  }
+
+  list.innerHTML = hookScripts.map((script, idx) => {
+    const bodyId = `cfg-script-body-${idx}`;
+    return `
+      <div class="cfg-script-block">
+        <div class="cfg-script-header" data-body="${bodyId}">
+          ${hookEventBadge(script.eventHint)}
+          <span class="cfg-script-filename">${escHtml(script.filename)}</span>
+          <span class="cfg-script-chevron">▶</span>
+        </div>
+        <div id="${bodyId}" class="cfg-script-body">
+          <pre class="cfg-script-pre">${escHtml(script.content)}</pre>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  list.querySelectorAll('.cfg-script-header').forEach(header => {
+    header.addEventListener('click', () => {
+      const body    = document.getElementById(header.dataset.body);
+      const chevron = header.querySelector('.cfg-script-chevron');
+      if (!body) return;
+      const open = body.classList.toggle('open');
+      if (chevron) chevron.style.transform = open ? 'rotate(90deg)' : '';
+    });
+  });
+}
+
+// ── Skills browser ────────────────────────────────────────────────────────
+
+function renderSkills(skills) {
+  const section = document.getElementById('cfg-skills-section');
+  const list    = document.getElementById('cfg-skills-list');
+  const countEl = document.getElementById('cfg-skills-count');
+
+  if (!section) return;
+  if (countEl) countEl.textContent = skills?.length ?? 0;
+
+  if (!skills?.length) {
+    section.classList.add('hidden');
+    return;
+  }
+
+  const bySource = {};
+  for (const s of skills) {
+    const src = s.source || 'global';
+    if (!bySource[src]) bySource[src] = [];
+    bySource[src].push(s);
+  }
+
+  list.innerHTML = Object.entries(bySource).map(([source, entries]) => `
+    <div class="cfg-skills-group">
+      <div class="cfg-sub-title">${escHtml(source)}</div>
+      ${entries.map(skill => {
+        const triggerKws = skill.trigger
+          ? skill.trigger.split(/[\s,;]+/).filter(Boolean).map(kw =>
+              `<span class="cfg-skill-kw">${escHtml(kw)}</span>`).join('')
+          : '';
+        return `
+          <div class="cfg-skill-row">
+            <div class="cfg-skill-name">${escHtml(skill.name)}</div>
+            ${skill.description ? `<div class="cfg-skill-desc">${escHtml(skill.description)}</div>` : ''}
+            ${triggerKws ? `<div class="cfg-skill-trigger">${triggerKws}</div>` : ''}
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `).join('');
+}
+
+// ── CLAUDE.md lint ────────────────────────────────────────────────────────
+
+function renderClaudeMdLint(lint, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container || !lint) return;
+
+  const total = (lint.warnings?.length ?? 0) + (lint.suggestions?.length ?? 0);
+  if (total === 0) { container.classList.add('hidden'); return; }
+
+  container.classList.remove('hidden');
+  container.innerHTML = [
+    ...(lint.warnings ?? []).map(w => `<div class="cfg-lint-warning">⚠ ${escHtml(w)}</div>`),
+    ...(lint.suggestions ?? []).map(s => `<div class="cfg-lint-suggestion">→ ${escHtml(s)}</div>`),
+  ].join('');
+}
+
 // ── CLAUDE.md expandable ──────────────────────────────────────────────────
 
-function renderClaudeMd(content, preId, titleSelector) {
+function renderClaudeMd(content, preId, lint) {
   if (!content) {
     document.getElementById(preId)?.closest('.cfg-section')?.classList.add('hidden');
     return;
@@ -165,6 +278,7 @@ function renderProjects(projects) {
       (allowCount + denyCount) ? `<span class="cfg-tag perms">${allowCount + denyCount} rules</span>` : '',
       p.claudeMd  ? `<span class="cfg-tag md">CLAUDE.md</span>`                   : '',
       p.localClaudeMd ? `<span class="cfg-tag local-md">CLAUDE.local.md</span>`   : '',
+      p.files?.length ? `<span class="cfg-tag files">${p.files.length} files</span>` : '',
     ].filter(Boolean).join('');
 
     block.innerHTML = `
@@ -191,6 +305,10 @@ function renderProjects(projects) {
       if (!isOpen && !body.dataset.rendered) {
         body.dataset.rendered = '1';
         body.innerHTML = buildProjectBody(p);
+        if (p.files?.length) {
+          const slug = projectBodySlug(p.projectPath);
+          renderFilesViewer(p.files, `pf-list-${slug}`, `pf-content-${slug}`);
+        }
       }
     });
 
@@ -249,6 +367,16 @@ function buildProjectBody(p) {
 
   if (p.claudeMd) {
     parts.push('<div class="cfg-sub-title">CLAUDE.md</div>');
+    if (p.claudeMdLint) {
+      const warnings    = p.claudeMdLint.warnings    ?? [];
+      const suggestions = p.claudeMdLint.suggestions ?? [];
+      if (warnings.length || suggestions.length) {
+        parts.push('<div class="cfg-lint-panel">');
+        parts.push(warnings.map(w    => `<div class="cfg-lint-warning">⚠ ${escHtml(w)}</div>`).join(''));
+        parts.push(suggestions.map(s => `<div class="cfg-lint-suggestion">→ ${escHtml(s)}</div>`).join(''));
+        parts.push('</div>');
+      }
+    }
     parts.push(`<pre class="cfg-md-pre">${escHtml(p.claudeMd)}</pre>`);
   }
 
@@ -257,7 +385,105 @@ function buildProjectBody(p) {
     parts.push(`<pre class="cfg-md-pre">${escHtml(p.localClaudeMd)}</pre>`);
   }
 
+  if (p.files?.length) {
+    const slug = projectBodySlug(p.projectPath);
+    parts.push(`
+      <div class="cfg-sub-title">
+        Files <span class="cfg-badge">${p.files.length}</span>
+        <span class="cfg-scope-badge project">project</span>
+      </div>
+      <div class="cfg-files-viewer cfg-files-viewer--project">
+        <div class="cfg-files-list" id="pf-list-${escHtml(slug)}"></div>
+        <div class="cfg-files-content" id="pf-content-${escHtml(slug)}">
+          <div class="cfg-files-placeholder">Select a file to view its content</div>
+        </div>
+      </div>
+    `);
+  }
+
   return parts.join('');
+}
+
+function projectBodySlug(projectPath) {
+  return projectPath.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').slice(-60);
+}
+
+// ── File viewer (global + per-project) ───────────────────────────────────
+
+const DIR_LABELS = { agents: 'AGENTS', commands: 'COMMANDS', hooks: 'HOOKS', skills: 'SKILLS' };
+const DIR_COLORS = { agents: 'teal', commands: 'blue', hooks: 'purple', skills: 'green' };
+
+function renderFilesViewer(files, listId, contentId) {
+  const listEl    = document.getElementById(listId);
+  const contentEl = document.getElementById(contentId);
+  if (!listEl || !contentEl) return;
+
+  if (!files?.length) {
+    listEl.innerHTML    = '<div class="cfg-empty">No files found</div>';
+    contentEl.innerHTML = '';
+    return;
+  }
+
+  // Group by dir
+  const byDir = {};
+  for (const f of files) {
+    if (!byDir[f.dir]) byDir[f.dir] = [];
+    byDir[f.dir].push(f);
+  }
+
+  let html = '';
+  let globalIndex = 0;
+  const indexedFiles = [];
+
+  for (const [dir, dirFiles] of Object.entries(byDir)) {
+    const label = DIR_LABELS[dir] ?? dir.toUpperCase();
+    const color = DIR_COLORS[dir] ?? 'dim';
+    html += `<div class="cfg-files-group-label cfg-dir-${color}">${label}</div>`;
+    for (const f of dirFiles) {
+      html += `<div class="cfg-file-item" data-index="${globalIndex}">${escHtml(f.name)}</div>`;
+      indexedFiles.push(f);
+      globalIndex++;
+    }
+  }
+
+  listEl.innerHTML = html;
+
+  function selectFile(index) {
+    listEl.querySelectorAll('.cfg-file-item').forEach(el => el.classList.remove('active'));
+    listEl.querySelector(`[data-index="${index}"]`)?.classList.add('active');
+    const f = indexedFiles[index];
+    if (!f) return;
+    const ext = f.name.split('.').pop() ?? '';
+    const lineCount = f.content.split('\n').length;
+    contentEl.innerHTML = `
+      <div class="cfg-file-header">
+        <span class="cfg-file-path">${escHtml(f.path)}</span>
+        <span class="cfg-file-meta">${lineCount} lines · .${escHtml(ext)}</span>
+      </div>
+      <pre class="cfg-file-pre">${escHtml(f.content)}</pre>
+    `;
+  }
+
+  listEl.querySelectorAll('.cfg-file-item').forEach(el => {
+    el.addEventListener('click', () => selectFile(Number(el.dataset.index)));
+  });
+
+  selectFile(0);
+}
+
+function renderGlobalFiles(files) {
+  const section  = document.getElementById('cfg-global-files-section');
+  const countEl  = document.getElementById('cfg-global-files-count');
+  if (!section) return;
+
+  countEl.textContent = files?.length ?? 0;
+
+  if (!files?.length) {
+    section.classList.add('hidden');
+    return;
+  }
+
+  renderFilesViewer(files, 'cfg-global-files-list', 'cfg-global-files-content');
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────
@@ -284,6 +510,10 @@ async function init() {
   renderMcp(g.mcpServers);
   renderPlugins(data.plugins);
   renderClaudeMd(data.globalClaudeMd, 'cfg-global-md');
+  renderClaudeMdLint(data.globalClaudeMdLint, 'cfg-global-md-lint');
+  renderHookScripts(data.hookScripts ?? []);
+  renderSkills(data.skills ?? []);
+  renderGlobalFiles(data.globalFiles);
   renderProjects(data.projects);
 
   initExpandables();

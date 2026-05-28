@@ -1,6 +1,6 @@
 {
   "name": "wlaudio",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Real-time web frontend for monitoring Claude Code sessions",
   "type": "module",
   "private": true,
@@ -16,7 +16,9 @@
     "db:query": "tsx scripts/db-query.ts",
     "db:query:list": "tsx scripts/db-query.ts --list",
     "clean": "rm -rf dist coverage test-results",
-    "precommit": "tsc --noEmit"
+    "precommit": "tsc --noEmit",
+    "docker:build": "bash scripts/docker-publish.sh --dry-run",
+    "docker:publish": "bash scripts/docker-publish.sh"
   },
   "engines": {
     "node": ">=20.0.0"

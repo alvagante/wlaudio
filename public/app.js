@@ -1,5 +1,5 @@
 import { renderSidebar, renderGlobalStats, renderPlans, renderSettings, initPlanModal, openPlanModal } from './sidebar.js';
-import { initTabs, initToolPopup, initFilesPopup, openFilesPopup, updateDetailHeader, updateMetrics, resetTimeline, appendTurnsToTimeline, renderPrompts, renderTasks } from './render.js';
+import { initTabs, initToolPopup, initFilesPopup, openFilesPopup, updateDetailHeader, updateMetrics, resetTimeline, appendTurnsToTimeline, resetSessionTimeline, appendTurnsToSessionTimeline, renderPrompts, renderTasks } from './render.js';
 import { updateSummaryCard, updateCodeImpact, updateFirstPrompt, updateActivityHours } from './insights.js';
 import { renderFileHistory } from './file-history.js';
 
@@ -67,14 +67,14 @@ function onInitialState({ activeSessions, sessionStats, turns, globalStats, hist
   // Populate completed sessions from session-meta for non-active sessions
   const activeIds = new Set(activeSessions.map(s => s.sessionId));
   const metas = Object.values(state.meta)
-    .filter(m => !activeIds.has(m.sessionId) && m.projectPath && m.startTime)
-    .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
-    .slice(0, 15);
+    .filter(m => !activeIds.has(m.sessionId))
+    .sort((a, b) => new Date(b.startTime ?? 0).getTime() - new Date(a.startTime ?? 0).getTime());
   for (const m of metas) {
-    const endedAt   = new Date(m.startTime).getTime() + m.durationMinutes * 60_000;
+    const startMs  = m.startTime ? new Date(m.startTime).getTime() : 0;
+    const endedAt  = startMs + (m.durationMinutes ?? 0) * 60_000;
     const toolCount = Object.values(m.toolCounts ?? {}).reduce((a, b) => a + b, 0);
     state.completed.set(m.sessionId, {
-      session: { sessionId: m.sessionId, cwd: m.projectPath, startedAt: new Date(m.startTime).getTime(), kind: 'interactive', entrypoint: 'cli' },
+      session: { sessionId: m.sessionId, cwd: m.projectPath ?? '', startedAt: startMs, kind: 'interactive', entrypoint: 'cli' },
       endedAt,
     });
     // Build synthetic stats — token/cost data is not in metadata, so flag as unavailable
@@ -95,7 +95,7 @@ function onInitialState({ activeSessions, sessionStats, turns, globalStats, hist
 
   if (!state.selectedId) {
     const urlSession = new URLSearchParams(location.search).get('session');
-    if (urlSession && isSessionKnown(urlSession)) {
+    if (urlSession) {
       state.selectedId = urlSession;
     } else {
       state.selectedId = state.sessions.size > 0
@@ -104,6 +104,11 @@ function onInitialState({ activeSessions, sessionStats, turns, globalStats, hist
     }
   }
   renderAll();
+  // Fetch turns for the auto-selected session if it's a completed one with no turns
+  if (state.selectedId && !state.sessions.has(state.selectedId) &&
+      !(state.turns.get(state.selectedId) ?? []).length) {
+    selectSession(state.selectedId);
+  }
 }
 
 function onSessionAdded({ session, stats }) {
@@ -138,6 +143,7 @@ function onTurnsUpdated({ sessionId, newTurns, stats }) {
     updateMetrics(stats, existing);
     updateCodeImpact(state.meta[sessionId] ?? null, stats);
     appendTurnsToTimeline(newTurns);
+    appendTurnsToSessionTimeline(newTurns);
     renderFileHistory(existing);
   }
 }
@@ -149,7 +155,7 @@ function onStatsUpdated(stats) {
 
 function onHistoryUpdated({ entries }) {
   state.history = entries;
-  if (state.selectedId) renderPrompts(state.selectedId, state.history);
+  if (state.selectedId) renderPrompts(state.selectedId, state.history, state.turns.get(state.selectedId) ?? []);
 }
 
 function onTodosUpdated({ todos }) {
@@ -183,9 +189,21 @@ function renderAll() {
   renderSettings(state.settings);
 }
 
-function selectSession(id) {
+async function selectSession(id) {
   state.selectedId = id;
   renderSidebarView();
+
+  // For completed sessions whose turns haven't been loaded yet, fetch them first
+  if (!state.sessions.has(id) && !(state.turns.get(id) ?? []).length) {
+    try {
+      const res = await fetch(`/api/v1/sessions/${encodeURIComponent(id)}/turns`);
+      if (res.ok) {
+        const data = await res.json();
+        state.turns.set(id, data.turns ?? []);
+      }
+    } catch { /* leave turns empty, renderDetailView handles it gracefully */ }
+  }
+
   renderDetailView();
 }
 
@@ -228,7 +246,9 @@ function renderDetailView() {
   updateCodeImpact(meta, stats);
   resetTimeline();
   appendTurnsToTimeline(turns);
-  renderPrompts(id, state.history);
+  resetSessionTimeline();
+  appendTurnsToSessionTimeline(turns);
+  renderPrompts(id, state.history, turns);
   renderTasks(id, state.todos);
   renderFileHistory(turns);
 }

@@ -37,6 +37,7 @@ export interface Turn {
   timestamp: string;
   isSidechain: boolean;
   sessionId: string;
+  text?: string;        // user turn prompt text
   model?: string;
   tokens?: TokenUsage;
   toolCalls?: ToolCall[];
@@ -142,6 +143,13 @@ export interface AnalyticsData {
   helpfulnessCounts: Record<string, number>;
   userSatisfactionCounts: Record<string, number>;
   frictionCounts: Record<string, number>;
+  // Feature extensions
+  toolTotals?: Record<string, number>;
+  toolByHour?: Record<string, number[]>;
+  forecastWeeklyCost?: number;
+  forecastMonthlyCost?: number;
+  burnRateDaily?: number;
+  burnRateTrend?: 'up' | 'down' | 'flat';
 }
 
 // ── New data types ─────────────────────────────────────────────────────────
@@ -190,12 +198,19 @@ export interface SettingsConfig {
   mcpServers: Record<string, unknown>;
 }
 
+export interface ClaudeMdLint {
+  warnings: string[];
+  suggestions: string[];
+}
+
 export interface ProjectConfig {
   projectPath: string;
   projectName: string;
   settings: SettingsConfig | null;
   claudeMd: string | null;
   localClaudeMd: string | null;
+  claudeMdLint?: ClaudeMdLint;
+  files: ClaudeFile[];
 }
 
 export interface PluginEntry {
@@ -205,11 +220,53 @@ export interface PluginEntry {
   text: string;
 }
 
+export interface HookScript {
+  filename: string;
+  eventHint: string;
+  content: string;
+}
+
+export interface SkillEntry {
+  name: string;
+  description: string;
+  trigger: string;
+  source: string;
+}
+
+export interface ProjectHealthBreakdown {
+  toolErrorRate: number;
+  outcomeQuality: number;
+  todoCompletion: number;
+  costEfficiency: number;
+  helpfulness: number;
+}
+
+export interface ProjectHealth {
+  score: number;
+  grade: string;
+  breakdown: ProjectHealthBreakdown;
+}
+
+export type ClaudeFileDir = 'agents' | 'commands' | 'hooks' | 'skills';
+
+export interface ClaudeFile {
+  name: string;
+  path: string;
+  dir: ClaudeFileDir;
+  content: string;
+}
+
+
 export interface ConfigsData {
   global: SettingsConfig | null;
   globalClaudeMd: string | null;
+  globalSettingsLocal: string | null;
+  globalFiles: ClaudeFile[];
   projects: ProjectConfig[];
   plugins: PluginEntry[];
+  hookScripts?: HookScript[];
+  skills?: SkillEntry[];
+  globalClaudeMdLint?: ClaudeMdLint | null;
 }
 
 // ── WebSocket protocol ─────────────────────────────────────────────────────
@@ -224,6 +281,7 @@ export type WsEventType =
   | 'todos_updated'
   | 'plans_updated'
   | 'meta_updated'
+  | 'mdd_updated'
   | 'terminal:output'
   | 'terminal:exit';
 
@@ -316,4 +374,75 @@ export interface TodosUpdatedData {
 
 export interface PlansUpdatedData {
   plans: Plan[];
+}
+
+// ── MDD Dashboard types ────────────────────────────────────────────────────
+
+export type MddDriftStatus = 'in_sync' | 'drifted' | 'broken_ref' | 'untracked';
+
+export type MddDocStatus = 'draft' | 'in_progress' | 'complete' | 'deprecated';
+
+export type MddAuditType =
+  | 'report'
+  | 'scan'
+  | 'flow'
+  | 'notes'
+  | 'results'
+  | 'update-notes'
+  | 'graph'
+  | 'unknown';
+
+export type MddDepRisk = 'ok' | 'risky' | 'broken';
+
+export interface MddDocSummary {
+  filename: string;
+  id: string;
+  title: string;
+  status: MddDocStatus | string;
+  phase: string;
+  lastSynced: string;
+  dependsOn: string[];
+  sourceFiles: string[];
+  knownIssues: string[];
+  body: string;
+  drift: MddDriftStatus;
+  driftCommitCount: number;
+  driftLatestMsg: string;
+}
+
+export interface MddAuditFile {
+  filename: string;
+  date: string;
+  type: MddAuditType;
+  body: string;
+}
+
+export interface MddDepEdge {
+  from: string;
+  to: string;
+  risk: MddDepRisk;
+}
+
+export interface MddGraph {
+  edges: MddDepEdge[];
+  orphans: string[];
+  ascii: string;
+}
+
+export interface MddSummary {
+  docCount: number;
+  inSync: number;
+  drifted: number;
+  brokenRef: number;
+  untracked: number;
+  knownIssueCount: number;
+  auditCount: number;
+}
+
+export interface MddDashboardResponse {
+  docs: MddDocSummary[];
+  audits: MddAuditFile[];
+  startup: string;
+  graph: MddGraph;
+  summary: MddSummary;
 }

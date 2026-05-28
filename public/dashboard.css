@@ -502,3 +502,41 @@
 
 .focus-hide { transition: opacity 0.3s, max-height 0.4s; }
 .focus-secondary { transition: opacity 0.3s; }
+
+/* ── Anomaly alerts ──────────────────────────────────────────────────────── */
+#db-anomaly-banner { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.85rem; }
+#db-anomaly-banner:empty, #db-anomaly-banner.hidden { display: none; }
+
+.db-alert {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.55rem 1rem; border-radius: var(--radius);
+  border-left: 3px solid; font-size: 0.7rem; gap: 1rem;
+}
+.db-alert--warn  { background: color-mix(in srgb, var(--orange) 8%, transparent); border-color: var(--orange); }
+.db-alert--error { background: color-mix(in srgb, var(--red)    8%, transparent); border-color: var(--red); }
+.db-alert--info  { background: color-mix(in srgb, var(--blue)   8%, transparent); border-color: var(--blue); }
+.db-alert-body   { display: flex; flex-direction: column; gap: 0.1rem; flex: 1; min-width: 0; }
+.db-alert-title  { font-weight: 700; color: var(--text); white-space: nowrap; }
+.db-alert-detail { color: var(--subtext); font-size: 0.65rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.db-alert-actions { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+.db-alert-link    { font-size: 0.65rem; color: var(--blue); text-decoration: none; white-space: nowrap; }
+.db-alert-link:hover { text-decoration: underline; }
+.db-alert-dismiss { background: none; border: none; color: var(--dim); cursor: pointer; font-size: 0.75rem; padding: 0.1rem 0.3rem; line-height: 1; }
+.db-alert-dismiss:hover { color: var(--text); }
+
+/* ── Sidebar badge ───────────────────────────────────────────────────────── */
+.sn-badge {
+  margin-left: auto; background: var(--red); color: #fff;
+  font-size: 0.55rem; font-weight: 700; min-width: 16px; height: 16px;
+  border-radius: 8px; display: inline-flex; align-items: center;
+  justify-content: center; padding: 0 0.3rem; line-height: 1;
+}
+.sn-badge:empty { display: none; }
+
+
+/* ── Plans list ──────────────────────────────────────────────────────────── */
+.db-plans-list { display: flex; flex-direction: column; gap: 0.25rem; }
+.db-plan-row   { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.5rem; border-radius: 4px; }
+.db-plan-row:hover { background: var(--surface1); }
+.db-plan-icon  { color: var(--blue); font-size: 0.75rem; flex-shrink: 0; }
+.db-plan-name  { font-size: 0.72rem; color: var(--text); letter-spacing: 0.02em; }

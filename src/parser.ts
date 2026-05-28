@@ -134,6 +134,15 @@ function processRecord(
       (c) => (c as Record<string, unknown>)['type'] === 'tool_result',
     );
     if (!isOnlyToolResults) {
+      // Extract the first non-empty text block as the prompt text
+      let text: string | undefined;
+      for (const item of content) {
+        const block = item as Record<string, unknown>;
+        if (block['type'] === 'text' && typeof block['text'] === 'string' && block['text'].trim()) {
+          text = block['text'].trim();
+          break;
+        }
+      }
       turns.push({
         uuid: String(record['uuid'] ?? ''),
         parentUuid: record['parentUuid'] != null ? String(record['parentUuid']) : null,
@@ -141,6 +150,7 @@ function processRecord(
         timestamp: String(record['timestamp'] ?? ''),
         isSidechain: Boolean(record['isSidechain']),
         sessionId: String(record['sessionId'] ?? ''),
+        text,
       });
     }
   }

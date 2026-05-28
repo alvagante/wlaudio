@@ -8,6 +8,7 @@
   <script src="theme.js"></script>
   <link rel="stylesheet" href="themes.css" />
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="timeline.css" />
 </head>
 <body>
 
@@ -18,17 +19,9 @@
       <div class="sidebar-logo">
         <a href="/themes.html" class="sb-logo-icon">⬡</a>
         <span class="sb-logo-text">WLAUDIO</span>
-        <span class="sb-version">0.5.0</span>
+        <span class="sb-version">0.6.0</span>
       </div>
-      <nav class="sidebar-nav">
-        <a href="/"               class="sn-link"><span class="sn-icon">▪</span>DASHBOARD</a>
-        <a href="/sessions.html"  class="sn-link active"><span class="sn-icon">◈</span>SESSIONS</a>
-        <a href="/analytics.html" class="sn-link"><span class="sn-icon">◫</span>ANALYTICS</a>
-        <a href="/projects.html"  class="sn-link"><span class="sn-icon">◧</span>PROJECTS</a>
-        <a href="/configs.html"   class="sn-link"><span class="sn-icon">◩</span>CONFIGS</a>
-        <a href="/themes.html"    class="sn-link"><span class="sn-icon">◐</span>THEMES</a>
-        <a href="/terminal.html"  class="sn-link"><span class="sn-icon">▷</span>TERMINAL</a>
-      </nav>
+      <nav id="sidebar-nav" class="sidebar-nav"></nav>
       <div class="sidebar-bottom">
         <div class="conn-indicator">
           <span id="conn-dot" class="dot disconnected"></span>
@@ -45,22 +38,6 @@
           SESSIONS <span id="session-count" class="badge">0</span>
         </div>
         <ul id="session-list"></ul>
-
-        <div class="panel-header" style="margin-top:auto">TODAY</div>
-        <div id="global-stats" class="global-stats">
-          <div class="stat-row"><span class="dim">Sessions</span><span id="gs-sessions">—</span></div>
-          <div class="stat-row"><span class="dim">Messages</span><span id="gs-messages">—</span></div>
-          <div class="stat-row"><span class="dim">Input tok</span><span id="gs-input">—</span></div>
-          <div class="stat-row"><span class="dim">Output tok</span><span id="gs-output">—</span></div>
-          <div class="stat-row"><span class="dim">Cache read</span><span id="gs-cache">—</span></div>
-        </div>
-        <div id="sparkline-wrap"><canvas id="sparkline" height="48"></canvas></div>
-
-        <div class="panel-header">PLANS <span id="plans-count" class="badge">0</span></div>
-        <div id="sidebar-plans" class="sidebar-plans"></div>
-
-        <div class="panel-header">CONFIG</div>
-        <div id="config-panel" class="config-panel"></div>
       </aside>
 
       <main id="main">
@@ -142,13 +119,15 @@
           </div>
 
           <div class="tab-bar">
-            <button class="tab active" data-tab="tools">TOOLS <span id="timeline-count" class="badge">0</span></button>
+            <button class="tab active" data-tab="timeline">TIMELINE</button>
+            <button class="tab" data-tab="tools">TOOLS <span id="timeline-count" class="badge">0</span></button>
             <button class="tab" data-tab="prompts">PROMPTS <span id="prompts-count" class="badge">0</span></button>
             <button class="tab" data-tab="tasks">TASKS <span id="tasks-count" class="badge">0</span></button>
             <button class="tab" data-tab="files">FILES <span id="fileops-count" class="badge">0</span></button>
           </div>
 
-          <div id="tab-tools" class="tab-content"><div id="timeline" class="timeline"></div></div>
+          <div id="tab-timeline" class="tab-content"><div id="session-timeline" class="tl-timeline"></div></div>
+          <div id="tab-tools" class="tab-content hidden"><div id="timeline" class="timeline"></div></div>
           <div id="tab-prompts" class="tab-content hidden"><div id="prompts-list" class="prompts-list"></div></div>
           <div id="tab-tasks" class="tab-content hidden"><div id="tasks-list" class="tasks-list"></div></div>
           <div id="tab-files" class="tab-content hidden">
@@ -197,6 +176,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="nav.js"></script>
+  <script src="learning.js"></script>
   <script type="module" src="app.js"></script>
 
 </body>

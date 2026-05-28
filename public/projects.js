@@ -86,7 +86,7 @@ function renderList() {
     const remW = Math.round((p.totalLinesRemoved / (p.totalLinesAdded + p.totalLinesRemoved || 1)) * 60 * lineScale);
 
     li.innerHTML = `
-      <div class="pr-li-name">${escHtml(p.projectName)}</div>
+      <div class="pr-li-name">${escHtml(p.projectName)}${p.healthGrade ? healthBadge(p.healthGrade, p.healthScore) : ''}</div>
       <div class="pr-li-meta">
         <span class="pr-li-sessions">${p.sessionCount} session${p.sessionCount !== 1 ? 's' : ''}</span>
         <span class="pr-li-age">${timeAgo(p.lastActive)}</span>
@@ -99,6 +99,57 @@ function renderList() {
     li.addEventListener('click', () => selectProject(p.projectPath));
     list.appendChild(li);
   }
+}
+
+// ── Health score ──────────────────────────────────────────────────────────
+
+const HEALTH_COLORS = { A: '#a6e3a1', B: '#89b4fa', C: '#f9e2af', D: '#fab387', F: '#f38ba8' };
+
+function healthBadge(grade, score) {
+  const color = HEALTH_COLORS[grade] ?? '#585b70';
+  return `<span class="pr-health-grade" style="color:${color};border-color:${color}" title="Health score: ${score}/100">${escHtml(grade)}</span>`;
+}
+
+function renderHealthBreakdown(p) {
+  const wrap = document.getElementById('pr-health-breakdown');
+  if (!wrap || p.healthScore == null) { wrap && (wrap.innerHTML = ''); return; }
+
+  const grade = p.healthGrade ?? '?';
+  const score = p.healthScore ?? 0;
+  const color = HEALTH_COLORS[grade] ?? '#585b70';
+  const bd    = p.healthBreakdown ?? {};
+
+  const components = [
+    { label: 'Tool Error Rate',   key: 'toolErrorRate',   pct: bd.toolErrorRate   ?? 0, weight: '25%' },
+    { label: 'Outcome Quality',   key: 'outcomeQuality',  pct: bd.outcomeQuality  ?? 0, weight: '30%' },
+    { label: 'Todo Completion',   key: 'todoCompletion',  pct: bd.todoCompletion  ?? 0, weight: '20%' },
+    { label: 'Cost Efficiency',   key: 'costEfficiency',  pct: bd.costEfficiency  ?? 0, weight: '15%' },
+    { label: 'Claude Helpfulness',key: 'helpfulness',     pct: bd.helpfulness     ?? 0, weight: '10%' },
+  ];
+
+  const barColor = (pct) => pct >= 75 ? '#a6e3a1' : pct >= 50 ? '#f9e2af' : '#f38ba8';
+
+  wrap.innerHTML = `
+    <div class="pr-health-header">
+      <div class="pr-health-grade-lg" style="color:${color};border-color:${color}">${escHtml(grade)}</div>
+      <div class="pr-health-score-info">
+        <div class="pr-health-score">${score}<span class="pr-health-denom">/100</span></div>
+        <div class="pr-health-label">Composite Score</div>
+      </div>
+    </div>
+    <div class="pr-health-bars">
+      ${components.map(c => `
+        <div class="pr-health-bar-row">
+          <span class="pr-health-bar-name">${escHtml(c.label)}</span>
+          <span class="pr-health-weight">${c.weight}</span>
+          <div class="pr-bar-track">
+            <div class="pr-bar-fill-health" style="width:${c.pct}%;background:${barColor(c.pct)}"></div>
+          </div>
+          <span class="pr-health-pct">${c.pct}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
 }
 
 // ── Detail panel ──────────────────────────────────────────────────────────
@@ -143,6 +194,7 @@ function renderDetail(p) {
     p.totalToolErrors > 0 ? `${p.totalToolErrors} errors` : 'no errors';
   document.getElementById('pr-files').textContent       = fmtNum(p.totalFilesModified);
 
+  renderHealthBreakdown(p);
   renderBarSection('pr-lang-bars',  p.languages,   'pr-bar-fill-lang');
   renderBarSection('pr-tool-bars',  p.toolCounts,  'pr-bar-fill-tool', 10);
   renderBarSection('pr-goal-bars',  p.goalCategories, 'pr-bar-fill-goal');

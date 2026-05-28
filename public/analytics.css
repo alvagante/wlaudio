@@ -140,3 +140,16 @@
 
 /* ── Empty state ─────────────────────────────────────────────────────────── */
 .an-empty { color: var(--dim); font-size: 0.75rem; text-align: center; padding: 1.5rem 0; }
+
+/* ── Cost forecast ───────────────────────────────────────────────────────── */
+.an-forecast-section { margin-bottom: 1rem; }
+.an-forecast-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.85rem; }
+@media (max-width: 700px) { .an-forecast-row { grid-template-columns: 1fr; } }
+.an-value-sm { font-size: 1.1rem; }
+.an-trend { font-size: 1rem; font-weight: 700; margin-right: 0.3rem; }
+
+/* ── Tool heatmap (extra-tall canvas) ────────────────────────────────────── */
+.an-chart-wrap.an-chart-xtall { height: 340px; }
+
+/* ── Tool bar fill uses border color ─────────────────────────────────────── */
+.an-tool-dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 0.3rem; }

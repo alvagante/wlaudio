@@ -18,17 +18,9 @@
       <div class="sidebar-logo">
         <a href="/themes.html" class="sb-logo-icon">⬡</a>
         <span class="sb-logo-text">WLAUDIO</span>
-        <span class="sb-version">0.5.0</span>
+        <span class="sb-version">0.6.0</span>
       </div>
-      <nav class="sidebar-nav">
-        <a href="/"               class="sn-link"><span class="sn-icon">▪</span>DASHBOARD</a>
-        <a href="/sessions.html"  class="sn-link"><span class="sn-icon">◈</span>SESSIONS</a>
-        <a href="/analytics.html" class="sn-link"><span class="sn-icon">◫</span>ANALYTICS</a>
-        <a href="/projects.html"  class="sn-link active"><span class="sn-icon">◧</span>PROJECTS</a>
-        <a href="/configs.html"   class="sn-link"><span class="sn-icon">◩</span>CONFIGS</a>
-        <a href="/themes.html"    class="sn-link"><span class="sn-icon">◐</span>THEMES</a>
-        <a href="/terminal.html"  class="sn-link"><span class="sn-icon">▷</span>TERMINAL</a>
-      </nav>
+      <nav id="sidebar-nav" class="sidebar-nav"></nav>
       <div class="sidebar-bottom"></div>
     </aside>
 
@@ -78,6 +70,11 @@
             <div class="pr-card"><div class="pr-card-label">Files Modified</div><div id="pr-files" class="pr-card-value"></div></div>
           </div>
 
+          <div class="pr-section" id="pr-health-section">
+            <div class="pr-section-title">Project Health</div>
+            <div id="pr-health-breakdown"></div>
+          </div>
+
           <div class="pr-two-col">
             <div class="pr-section"><div class="pr-section-title">Languages</div><div id="pr-lang-bars"></div></div>
             <div class="pr-section">
@@ -106,6 +103,8 @@
   <div id="pr-loading" class="pr-loading">LOADING…</div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="nav.js"></script>
+  <script src="learning.js"></script>
   <script src="projects.js"></script>
 
 </body>

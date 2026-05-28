@@ -1,11 +1,11 @@
 // ── Session detail: metrics, charts, timeline, prompts, tasks ─────────────
 import {
   TAG_COLORS, fmtTokens, fmtDuration, fmtMs,
-  fmtToolInput, fmtTimestamp, toolColor, escHtml,
+  fmtToolInput, fmtTimestamp, toolColor, escHtml, renderUserContent,
 } from './utils.js';
 
 let tokenChart  = null;
-let activeTab   = 'tools';
+let activeTab   = 'timeline';
 let _popupTurns = [];   // current session turns — used by tool popup
 
 // ── Tabs ───────────────────────────────────────────────────────────────────
@@ -399,27 +399,89 @@ function buildToolRow(tc, isSidechain) {
   return row;
 }
 
+// ── Chat-style session timeline (tab-timeline) ─────────────────────────────
+
+export function resetSessionTimeline() {
+  const el = document.getElementById('session-timeline');
+  if (el) el.innerHTML = '';
+}
+
+export function appendTurnsToSessionTimeline(turns) {
+  const el = document.getElementById('session-timeline');
+  if (!el) return;
+  for (const turn of turns) {
+    if (turn.type === 'user' && turn.text) {
+      const bubble = document.createElement('div');
+      bubble.className = 'tl-bubble--user';
+      bubble.innerHTML = `
+        <div class="tl-time">${escHtml(fmtTimestamp(turn.timestamp))}</div>
+        <div class="tl-user-content">${renderUserContent(turn.text)}</div>
+      `;
+      el.appendChild(bubble);
+    }
+    for (const tc of turn.toolCalls ?? []) {
+      const color   = toolColor(tc.name);
+      const isError = tc.result?.isError ?? false;
+      const desc    = fmtToolInput(tc.name, tc.input ?? {});
+      const dur     = tc.durationMs != null ? `${tc.durationMs}ms` : '—';
+      const time    = fmtTimestamp(tc.timestamp);
+      const row = document.createElement('div');
+      row.className = `tl-tool-row${isError ? ' tl-tool-row--error' : ''}`;
+      row.innerHTML = `
+        <span class="tl-tr-status ${isError ? 'tl-err' : 'tl-ok'}">${isError ? '✗' : '✓'}</span>
+        <span class="tl-tr-time">${escHtml(time)}</span>
+        <span class="tl-tr-dur">${escHtml(dur)}</span>
+        <span class="tl-tr-name" style="color:${color}">
+          <span class="tl-tool-dot" style="background:${color}"></span>${escHtml(tc.name)}
+        </span>
+        ${desc ? `<span class="tl-tr-desc">${escHtml(desc.slice(0, 100))}</span>` : ''}
+      `;
+      el.appendChild(row);
+    }
+  }
+  el.scrollTop = el.scrollHeight;
+}
+
 // ── Prompts panel ──────────────────────────────────────────────────────────
 
-export function renderPrompts(sessionId, history) {
+export function renderPrompts(sessionId, history, turns = []) {
   const list    = document.getElementById('prompts-list');
   const counter = document.getElementById('prompts-count');
-  const entries = (history ?? []).filter(e => e.sessionId === sessionId);
 
-  counter.textContent = entries.length;
-  if (!entries.length) {
+  // Primary source: history.jsonl entries matched by sessionId
+  const historyEntries = (history ?? []).filter(e => e.sessionId === sessionId);
+
+  if (historyEntries.length) {
+    counter.textContent = historyEntries.length;
+    list.innerHTML = historyEntries.map(e => {
+      const isCmd = e.display.startsWith('/') || e.display.startsWith('!');
+      const cls   = isCmd ? 'prompt-cmd' : 'prompt-text';
+      return `
+        <div class="prompt-row">
+          <span class="prompt-time">${fmtTimestamp(e.timestamp)}</span>
+          <span class="prompt-body ${cls}">${escHtml(e.display)}</span>
+        </div>
+      `;
+    }).join('');
+    return;
+  }
+
+  // Fallback: extract user prompts from turn text (works for historical sessions
+  // where history.jsonl entries have no sessionId or are unavailable)
+  const turnEntries = (turns ?? []).filter(t => t.type === 'user' && t.text);
+  counter.textContent = turnEntries.length;
+  if (!turnEntries.length) {
     list.innerHTML = '<div class="panel-empty">No prompts recorded for this session</div>';
     return;
   }
 
-  list.innerHTML = entries.map(e => {
-    const isCmd  = e.display.startsWith('/') || e.display.startsWith('!');
-    const cls    = isCmd ? 'prompt-cmd' : 'prompt-text';
-    const time   = fmtTimestamp(e.timestamp);
+  list.innerHTML = turnEntries.map(t => {
+    const isCmd = t.text.startsWith('/') || t.text.startsWith('!');
+    const cls   = isCmd ? 'prompt-cmd' : 'prompt-text';
     return `
       <div class="prompt-row">
-        <span class="prompt-time">${time}</span>
-        <span class="prompt-body ${cls}">${escHtml(e.display)}</span>
+        <span class="prompt-time">${fmtTimestamp(t.timestamp)}</span>
+        <span class="prompt-body ${cls}">${escHtml(t.text)}</span>
       </div>
     `;
   }).join('');

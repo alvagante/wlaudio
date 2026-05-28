@@ -51,6 +51,7 @@ const state = {
   globalStats: null,
   projects:    [],
   configs:     null,
+  plans:       [],
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -135,9 +136,11 @@ function dispatch({ type, data }) {
         for (const [id, ts] of Object.entries(data.turns)) state.turns.set(id, ts);
       }
       state.globalStats = data.globalStats;
+      state.plans       = data.plans ?? [];
       renderLive();
       renderStats();
       renderActivityChart();
+      renderPlans();
       break;
     case 'session_added':
       state.sessions.set(data.session.sessionId, data.session);
@@ -162,6 +165,10 @@ function dispatch({ type, data }) {
       state.globalStats = data;
       renderStats();
       renderActivityChart();
+      break;
+    case 'plans_updated':
+      state.plans = data.plans ?? [];
+      renderPlans();
       break;
   }
 }
@@ -234,6 +241,7 @@ function renderLive() {
   const container = document.getElementById('db-live-container');
 
   renderHeroStats();
+  renderAnomalies();
 
   if (state.sessions.size === 0) {
     container.innerHTML = `
@@ -259,6 +267,17 @@ function renderStats() {
   setText('db-total-sessions', fmtNum(gs?.totalSessions));
   setText('db-total-messages', fmtNum(gs?.totalMessages));
 
+  // Token totals from model usage
+  let inp = 0, out = 0, cacheR = 0;
+  for (const m of Object.values(gs?.modelUsage ?? {})) {
+    inp    += m.inputTokens            ?? 0;
+    out    += m.outputTokens           ?? 0;
+    cacheR += m.cacheReadInputTokens   ?? 0;
+  }
+  setText('db-total-input',  fmtTokens(inp));
+  setText('db-total-output', fmtTokens(out));
+  setText('db-total-cache',  fmtTokens(cacheR));
+
   // Aggregate from projects data
   if (state.projects.length) {
     const totalCommits = state.projects.reduce((s, p) => s + (p.totalGitCommits ?? 0), 0);
@@ -270,6 +289,32 @@ function renderStats() {
     setText('db-top-project',   topProject?.projectName ?? '—');
     setText('db-total-projects', fmtNum(state.projects.length));
   }
+}
+
+// ── Plans ──────────────────────────────────────────────────────────────────
+
+function renderPlans() {
+  const list    = document.getElementById('db-plans-list');
+  const counter = document.getElementById('db-plans-count');
+  if (!list) return;
+
+  const plans = state.plans ?? [];
+  if (counter) counter.textContent = plans.length || '';
+
+  const section = document.getElementById('db-plans-section');
+  if (section) section.classList.toggle('hidden', plans.length === 0);
+
+  if (!plans.length) {
+    list.innerHTML = '<div class="db-empty">No active plans</div>';
+    return;
+  }
+
+  list.innerHTML = plans.map(p => `
+    <div class="db-plan-row">
+      <span class="db-plan-icon">◈</span>
+      <span class="db-plan-name">${escHtml(p.name.replace(/-/g, ' '))}</span>
+    </div>
+  `).join('');
 }
 
 function setText(id, val) {
@@ -439,6 +484,103 @@ function renderConfigHealth() {
       return `<div class="db-cfg-row"><span class="db-cfg-key">${escHtml(event)}</span><span class="db-cfg-val">${n} hook${n !== 1 ? 's' : ''}</span></div>`;
     }).join('')}
   `;
+}
+
+// ── Anomaly detection ─────────────────────────────────────────────────────
+
+const DISMISSED_KEY = 'wlaudio-dismissed-anomalies';
+
+function getDismissed() {
+  try { return new Set(JSON.parse(sessionStorage.getItem(DISMISSED_KEY) ?? '[]')); }
+  catch { return new Set(); }
+}
+
+function saveDismissed(set) {
+  try { sessionStorage.setItem(DISMISSED_KEY, JSON.stringify([...set])); } catch { /* ignore */ }
+}
+
+function dismissAnomaly(key) {
+  const d = getDismissed();
+  d.add(key);
+  saveDismissed(d);
+  renderAnomalies();
+}
+
+function detectAnomalies() {
+  const dismissed = getDismissed();
+  const anomalies = [];
+
+  for (const [id, st] of state.stats) {
+    if (!st) continue;
+    const session      = state.sessions.get(id);
+    const projectLabel = session ? projectName(session.cwd) : id.slice(0, 8);
+
+    // Cost > $1.00
+    const costKey = `cost-${id}`;
+    if (!dismissed.has(costKey) && (st.estimatedCostUSD ?? 0) > 1.00) {
+      anomalies.push({ key: costKey, sessionId: id, severity: 'warn',
+        title: 'High cost session',
+        detail: `$${(st.estimatedCostUSD ?? 0).toFixed(2)} spent — ${projectLabel}` });
+    }
+
+    // Tool error rate > 15%
+    const errKey  = `errrate-${id}`;
+    const errRate = (st.toolCallCount ?? 0) > 0 ? (st.toolErrorCount ?? 0) / st.toolCallCount : 0;
+    if (!dismissed.has(errKey) && errRate > 0.15) {
+      anomalies.push({ key: errKey, sessionId: id, severity: 'error',
+        title: 'High error rate',
+        detail: `${Math.round(errRate * 100)}% tool errors — ${projectLabel}` });
+    }
+
+    // Any single tool called > 30× (possible loop)
+    for (const [tool, count] of Object.entries(st.toolFrequency ?? {})) {
+      const loopKey = `loop-${id}-${tool}`;
+      if (!dismissed.has(loopKey) && count > 30) {
+        anomalies.push({ key: loopKey, sessionId: id, severity: 'warn',
+          title: 'Possible loop detected',
+          detail: `${escHtml(tool)} called ${count}× — ${projectLabel}` });
+      }
+    }
+
+    // Duration > 60 min
+    const durKey = `dur-${id}`;
+    if (!dismissed.has(durKey) && (st.durationMs ?? 0) > 60 * 60 * 1000) {
+      anomalies.push({ key: durKey, sessionId: id, severity: 'info',
+        title: 'Long-running session',
+        detail: `${fmtDuration(st.durationMs)} active — ${projectLabel}` });
+    }
+  }
+
+  return anomalies;
+}
+
+function renderAnomalies() {
+  const anomalies = detectAnomalies();
+  const banner    = document.getElementById('db-anomaly-banner');
+  const badge     = document.getElementById('db-dash-badge');
+
+  if (badge) badge.textContent = anomalies.length > 0 ? String(anomalies.length) : '';
+
+  if (!banner) return;
+  if (!anomalies.length) { banner.classList.add('hidden'); return; }
+
+  banner.classList.remove('hidden');
+  banner.innerHTML = anomalies.map(a => `
+    <div class="db-alert db-alert--${escHtml(a.severity)}">
+      <div class="db-alert-body">
+        <span class="db-alert-title">${escHtml(a.title)}</span>
+        <span class="db-alert-detail">${a.detail}</span>
+      </div>
+      <div class="db-alert-actions">
+        <a class="db-alert-link" href="/sessions.html?session=${encodeURIComponent(a.sessionId)}">view →</a>
+        <button class="db-alert-dismiss" data-key="${escHtml(a.key)}" aria-label="Dismiss">✕</button>
+      </div>
+    </div>
+  `).join('');
+
+  banner.querySelectorAll('.db-alert-dismiss').forEach(btn => {
+    btn.addEventListener('click', () => dismissAnomaly(btn.dataset.key));
+  });
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────

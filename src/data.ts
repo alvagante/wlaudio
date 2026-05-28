@@ -1,7 +1,7 @@
-import { readFileSync, readdirSync, existsSync, openSync, readSync, closeSync } from 'fs';
+import { readFileSync, readdirSync, existsSync, statSync, openSync, readSync, closeSync } from 'fs';
 import { join } from 'path';
 import { CLAUDE_DIR } from './parser.js';
-import type { HistoryEntry, TodoItem, Plan, ClaudeSettings, SessionMeta, SessionFacets, SettingsConfig, ProjectConfig, PluginEntry, ConfigsData, HookEntry } from './types/index.js';
+import type { HistoryEntry, TodoItem, Plan, ClaudeSettings, SessionMeta, SessionFacets, SettingsConfig, ProjectConfig, PluginEntry, ConfigsData, HookEntry, HookScript, SkillEntry, ClaudeFile, ClaudeFileDir } from './types/index.js';
 
 export function loadHistory(): HistoryEntry[] {
   const path = join(CLAUDE_DIR, 'history.jsonl');
@@ -267,9 +267,36 @@ function readFileSafe(path: string): string | null {
   try { return readFileSync(path, 'utf-8'); } catch { return null; }
 }
 
+const MAX_FILE_BYTES = 512 * 1024;
+const CLAUDE_SUBDIRS: ClaudeFileDir[] = ['agents', 'commands', 'hooks', 'skills'];
+
+export function loadClaudeFilesForDir(claudeDir: string, dirName: ClaudeFileDir): ClaudeFile[] {
+  const subdir = join(claudeDir, dirName);
+  if (!existsSync(subdir)) return [];
+  try {
+    return readdirSync(subdir)
+      .sort()
+      .flatMap(filename => {
+        const filePath = join(subdir, filename);
+        try {
+          const stat = statSync(filePath);
+          if (!stat.isFile() || stat.size > MAX_FILE_BYTES) return [];
+          const content = readFileSync(filePath, 'utf-8');
+          return [{ name: filename, path: filePath, dir: dirName, content }];
+        } catch {
+          return [];
+        }
+      });
+  } catch {
+    return [];
+  }
+}
+
 export function loadConfigs(): ConfigsData {
-  const global         = parseSettingsFile(join(CLAUDE_DIR, 'settings.json'));
-  const globalClaudeMd = readFileSafe(join(CLAUDE_DIR, 'CLAUDE.md'));
+  const global               = parseSettingsFile(join(CLAUDE_DIR, 'settings.json'));
+  const globalClaudeMd       = readFileSafe(join(CLAUDE_DIR, 'CLAUDE.md'));
+  const globalSettingsLocal  = readFileSafe(join(CLAUDE_DIR, 'settings.local.json'));
+  const globalFiles          = CLAUDE_SUBDIRS.flatMap(d => loadClaudeFilesForDir(CLAUDE_DIR, d));
 
   // Plugins
   let plugins: PluginEntry[] = [];
@@ -294,20 +321,112 @@ export function loadConfigs(): ConfigsData {
   const projects: ProjectConfig[] = [...projectPaths]
     .sort()
     .map(projectPath => {
+      const claudeSubdir = join(projectPath, '.claude');
       const projectName = projectPath.split('/').filter(Boolean).pop() ?? projectPath;
       return {
         projectPath,
         projectName,
-        settings:      parseSettingsFile(join(projectPath, '.claude', 'settings.json')),
+        settings:      parseSettingsFile(join(claudeSubdir, 'settings.json')),
         claudeMd:      readFileSafe(join(projectPath, 'CLAUDE.md'))
-                    ?? readFileSafe(join(projectPath, '.claude', 'CLAUDE.md')),
+                    ?? readFileSafe(join(claudeSubdir, 'CLAUDE.md')),
         localClaudeMd: readFileSafe(join(projectPath, 'CLAUDE.local.md'))
-                    ?? readFileSafe(join(projectPath, '.claude', 'CLAUDE.local.md')),
+                    ?? readFileSafe(join(claudeSubdir, 'CLAUDE.local.md')),
+        files:         CLAUDE_SUBDIRS.flatMap(d => loadClaudeFilesForDir(claudeSubdir, d)),
       };
     })
-    .filter(p => p.settings !== null || p.claudeMd !== null || p.localClaudeMd !== null);
+    .filter(p => p.settings !== null || p.claudeMd !== null || p.localClaudeMd !== null || p.files.length > 0);
 
-  return { global, globalClaudeMd, projects, plugins };
+  return { global, globalClaudeMd, globalSettingsLocal, globalFiles, projects, plugins };
+}
+
+// ── Hook scripts ───────────────────────────────────────────────────────────
+
+const HOOK_SCRIPT_EXTS = new Set(['.sh', '.bash', '.py', '.js', '.ts']);
+const HOOK_EVENT_KEYWORDS = ['PreToolUse', 'PostToolUse', 'Stop', 'Notification'];
+
+function detectEventHint(content: string): string {
+  const firstLines = content.split('\n').slice(0, 10).join(' ');
+  for (const kw of HOOK_EVENT_KEYWORDS) {
+    if (firstLines.toLowerCase().includes(kw.toLowerCase())) return kw;
+  }
+  return 'unknown';
+}
+
+export function loadHookScripts(): HookScript[] {
+  const dir = join(CLAUDE_DIR, 'hooks');
+  if (!existsSync(dir)) return [];
+  try {
+    return readdirSync(dir)
+      .filter(f => HOOK_SCRIPT_EXTS.has(f.slice(f.lastIndexOf('.'))))
+      .flatMap(filename => {
+        try {
+          const raw = readFileSync(join(dir, filename));
+          const content = raw.subarray(0, 8192).toString('utf-8');
+          return [{ filename, eventHint: detectEventHint(content), content }];
+        } catch {
+          return [];
+        }
+      });
+  } catch {
+    return [];
+  }
+}
+
+// ── Skills / commands browser ──────────────────────────────────────────────
+
+function parseSkillFrontmatter(content: string): { name: string; description: string; trigger: string } {
+  const fence = content.indexOf('---', 3);
+  if (!content.startsWith('---') || fence === -1) return { name: '', description: '', trigger: '' };
+  const frontmatter = content.slice(3, fence);
+
+  let name        = '';
+  let description = '';
+  let trigger     = '';
+  let inDesc      = false;
+  let descLines: string[] = [];
+
+  for (const raw of frontmatter.split('\n')) {
+    const line = raw.trimEnd();
+    if (inDesc) {
+      if (/^\S/.test(line)) {
+        description = descLines.join(' ').trim();
+        inDesc = false;
+      } else {
+        descLines.push(line.trim());
+        continue;
+      }
+    }
+    if (/^name:\s*/.test(line))        name    = line.replace(/^name:\s*/, '').trim();
+    if (/^trigger:\s*/.test(line))     trigger = line.replace(/^trigger:\s*/, '').trim();
+    if (/^description:\s*>-?\s*$/.test(line)) { inDesc = true; descLines = []; }
+    else if (/^description:\s*/.test(line))   description = line.replace(/^description:\s*/, '').trim();
+  }
+  if (inDesc) description = descLines.join(' ').trim();
+
+  return { name, description, trigger };
+}
+
+export function loadSkillsAndCommands(): SkillEntry[] {
+  const skillsDir = join(CLAUDE_DIR, 'skills');
+  if (!existsSync(skillsDir)) return [];
+  const result: SkillEntry[] = [];
+  try {
+    for (const entry of readdirSync(skillsDir, { withFileTypes: true })) {
+      let content: string | null = null;
+      if (entry.isDirectory()) {
+        const mdPath = join(skillsDir, entry.name, 'SKILL.md');
+        if (existsSync(mdPath)) {
+          try { content = readFileSync(mdPath, 'utf-8'); } catch { /* skip */ }
+        }
+      } else if (entry.isFile() && entry.name.endsWith('.md')) {
+        try { content = readFileSync(join(skillsDir, entry.name), 'utf-8'); } catch { /* skip */ }
+      }
+      if (!content) continue;
+      const { name, description, trigger } = parseSkillFrontmatter(content);
+      result.push({ name: name || entry.name, description, trigger, source: 'global' });
+    }
+  } catch { /* skip */ }
+  return result;
 }
 
 export function loadAllSessionFacets(): Record<string, SessionFacets> {

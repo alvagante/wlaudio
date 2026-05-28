@@ -18,17 +18,9 @@
       <div class="sidebar-logo">
         <a href="/themes.html" class="sb-logo-icon">⬡</a>
         <span class="sb-logo-text">WLAUDIO</span>
-        <span class="sb-version">0.5.0</span>
+        <span class="sb-version">0.6.0</span>
       </div>
-      <nav class="sidebar-nav">
-        <a href="/"               class="sn-link"><span class="sn-icon">▪</span>DASHBOARD</a>
-        <a href="/sessions.html"  class="sn-link"><span class="sn-icon">◈</span>SESSIONS</a>
-        <a href="/analytics.html" class="sn-link active"><span class="sn-icon">◫</span>ANALYTICS</a>
-        <a href="/projects.html"  class="sn-link"><span class="sn-icon">◧</span>PROJECTS</a>
-        <a href="/configs.html"   class="sn-link"><span class="sn-icon">◩</span>CONFIGS</a>
-        <a href="/themes.html"    class="sn-link"><span class="sn-icon">◐</span>THEMES</a>
-        <a href="/terminal.html"  class="sn-link"><span class="sn-icon">▷</span>TERMINAL</a>
-      </nav>
+      <nav id="sidebar-nav" class="sidebar-nav"></nav>
       <div class="sidebar-bottom"></div>
     </aside>
 
@@ -67,6 +59,27 @@
           </div>
         </div>
 
+        <div class="an-section an-forecast-section">
+          <div class="an-section-title">Cost Forecast</div>
+          <div class="an-forecast-row">
+            <div class="an-stat-card">
+              <div class="an-label">Daily Burn Rate</div>
+              <div id="an-burn-rate" class="an-value an-value-sm">—</div>
+              <div class="an-sub"><span id="an-burn-trend" class="an-trend"></span> vs prev week</div>
+            </div>
+            <div class="an-stat-card">
+              <div class="an-label">Forecast — This Week</div>
+              <div id="an-forecast-weekly" class="an-value an-value-sm">—</div>
+              <div class="an-sub">remaining days at current rate</div>
+            </div>
+            <div class="an-stat-card">
+              <div class="an-label">Forecast — This Month</div>
+              <div id="an-forecast-monthly" class="an-value an-value-sm">—</div>
+              <div class="an-sub">remaining days at current rate</div>
+            </div>
+          </div>
+        </div>
+
         <div class="an-section">
           <div class="an-section-title">Daily Estimated Cost (last 60 days)</div>
           <div class="an-chart-wrap an-chart-tall"><canvas id="daily-cost-chart"></canvas></div>
@@ -76,6 +89,16 @@
         <div class="an-section">
           <div class="an-section-title">Code Velocity — Lines Changed per Day</div>
           <div class="an-chart-wrap an-chart-tall"><canvas id="velocity-chart"></canvas></div>
+        </div>
+
+        <div class="an-section">
+          <div class="an-section-title">Tool Usage — Top 15</div>
+          <div class="an-chart-wrap an-chart-xtall" id="an-tool-heatmap-wrap"></div>
+        </div>
+
+        <div class="an-section">
+          <div class="an-section-title">Tool Activity by Hour of Day</div>
+          <div class="an-chart-wrap an-chart-tall"><canvas id="an-tool-hour-chart"></canvas></div>
         </div>
 
         <div class="an-section">
@@ -98,6 +121,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="nav.js"></script>
+  <script src="learning.js"></script>
   <script src="analytics.js"></script>
 
 </body>

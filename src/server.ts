@@ -4,9 +4,13 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { join, dirname, resolve, basename } from 'path';
 import { fileURLToPath } from 'url';
 import { readFileSync, existsSync } from 'fs';
-import { emitter, getAllSessionStates, startWatcher } from './watcher.js';
-import { loadGlobalStats, CLAUDE_DIR } from './parser.js';
-import { loadHistory, loadAllTodos, loadPlans, loadSettings, loadAllSessionMetas, loadOrphanSessionMetas, loadAllSessionFacets, loadConfigs } from './data.js';
+import { homedir } from 'os';
+import { emitter, getAllSessionStates, getSessionState, startWatcher } from './watcher.js';
+import { buildMddDashboard } from './mdd.js';
+import { loadGlobalStats, parseSessionTurns, encodePath, CLAUDE_DIR } from './parser.js';
+import { loadHistory, loadAllTodos, loadPlans, loadSettings, loadAllSessionMetas, loadOrphanSessionMetas, loadAllSessionFacets, loadConfigs, loadHookScripts, loadSkillsAndCommands } from './data.js';
+import { computeProjectHealth } from './health.js';
+import { claudeMdLinter } from './linter.js';
 import { terminalManager } from './terminal.js';
 import type {
   WsMessage,
@@ -48,10 +52,49 @@ const publicDir  = join(__dirname, '..', 'public');
 const app = express();
 const httpServer = createServer(app);
 
+// Restrict API routes to same-origin / localhost — blocks cross-site data leakage
+app.use('/api', (req, res, next) => {
+  const origin = req.headers['origin'];
+  // Allow requests with no Origin header (same-origin, curl, direct navigation)
+  if (!origin) return next();
+  try {
+    const host = new URL(origin).hostname;
+    if (host === 'localhost' || host === '127.0.0.1' || host === '::1') return next();
+  } catch { /* invalid Origin — fall through to reject */ }
+  res.status(403).json({ error: 'Forbidden' });
+});
+
 app.use(express.static(publicDir));
 
 app.get('/api/state', (_req, res) => {
   res.json(buildInitialState());
+});
+
+app.get('/api/v1/sessions/:id/turns', (req, res) => {
+  const sessionId = req.params['id'] ?? '';
+  if (!/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
+    res.status(400).json({ error: 'Invalid session ID' });
+    return;
+  }
+
+  // Active session — serve from memory
+  const active = getSessionState(sessionId);
+  if (active) {
+    res.json({ turns: active.turns });
+    return;
+  }
+
+  // Historical session — locate JSONL via session-meta
+  const allMeta = loadAllSessionMetas();
+  const meta = allMeta[sessionId];
+  if (!meta) {
+    res.status(404).json({ error: 'Session not found' });
+    return;
+  }
+
+  const filePath = join(CLAUDE_DIR, 'projects', encodePath(meta.projectPath), `${sessionId}.jsonl`);
+  const { turns } = parseSessionTurns(filePath, 0);
+  res.json({ turns });
 });
 
 // ── Analytics API ──────────────────────────────────────────────────────────
@@ -151,6 +194,42 @@ app.get('/api/v1/analytics', (_req, res) => {
     }
   }
 
+  // ── Tool totals + by-hour aggregation ────────────────────────────────────
+  const toolTotals: Record<string, number>    = {};
+  const toolByHour: Record<string, number[]>  = {};
+
+  for (const m of Object.values(allMetas)) {
+    const primaryHour = m.messageHours?.[0];
+    for (const [tool, count] of Object.entries(m.toolCounts ?? {})) {
+      toolTotals[tool] = (toolTotals[tool] ?? 0) + count;
+      if (primaryHour !== undefined) {
+        if (!toolByHour[tool]) toolByHour[tool] = new Array(24).fill(0) as number[];
+        const arr = toolByHour[tool]!;
+        arr[primaryHour] = (arr[primaryHour] ?? 0) + count;
+      }
+    }
+  }
+
+  // ── Cost forecasting from last 7/14 days ──────────────────────────────────
+  const last7  = dailyCosts.slice(-7);
+  const last14 = dailyCosts.slice(-14);
+  const burnRateDaily = last7.length
+    ? last7.reduce((s, d) => s + d.total, 0) / last7.length
+    : 0;
+  const prevWeekAvg = last14.length > 7
+    ? last14.slice(0, 7).reduce((s, d) => s + d.total, 0) / 7
+    : burnRateDaily;
+  const burnRateTrend: 'up' | 'down' | 'flat' =
+    burnRateDaily > prevWeekAvg * 1.1 ? 'up'   :
+    burnRateDaily < prevWeekAvg * 0.9 ? 'down' : 'flat';
+
+  const today           = new Date();
+  const daysLeftInWeek  = 7 - today.getDay();
+  const daysInMonth     = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const daysLeftInMonth = daysInMonth - today.getDate();
+  const forecastWeeklyCost  = Math.round(burnRateDaily * daysLeftInWeek  * 100) / 100;
+  const forecastMonthlyCost = Math.round(burnRateDaily * daysLeftInMonth * 100) / 100;
+
   const analytics: AnalyticsData = {
     totalSessions:    globalStats?.totalSessions   ?? 0,
     totalMessages:    globalStats?.totalMessages   ?? 0,
@@ -166,6 +245,12 @@ app.get('/api/v1/analytics', (_req, res) => {
     helpfulnessCounts,
     userSatisfactionCounts,
     frictionCounts,
+    toolTotals,
+    toolByHour,
+    burnRateDaily:        Math.round(burnRateDaily * 10000) / 10000,
+    burnRateTrend,
+    forecastWeeklyCost,
+    forecastMonthlyCost,
   };
 
   res.json(analytics);
@@ -176,6 +261,7 @@ app.get('/api/v1/projects', (_req, res) => {
   const orphans   = loadOrphanSessionMetas(new Set(Object.keys(allMetas)));
   Object.assign(allMetas, orphans);
   const allFacets = loadAllSessionFacets();
+  const allTodos  = loadAllTodos();
 
   // Group sessions by project path
   const byProject = new Map<string, {
@@ -265,6 +351,13 @@ app.get('/api/v1/projects', (_req, res) => {
     const firstActive = sortedActiveTimes[0]?.iso ?? '';
     const lastActive  = sortedActiveTimes[sortedActiveTimes.length - 1]?.iso ?? '';
 
+    const projectTodos = metas.flatMap(m => allTodos[m.sessionId] ?? []);
+    const health = computeProjectHealth(
+      { totalToolCalls, totalToolErrors, outcomeCounts, helpfulnessCounts,
+        totalLinesAdded, totalLinesRemoved, estimatedCostUSD: 0 },
+      projectTodos,
+    );
+
     return {
       projectPath,
       projectName: basename(projectPath.replace(/\\/g, '/')) || projectPath,
@@ -288,6 +381,9 @@ app.get('/api/v1/projects', (_req, res) => {
       helpfulnessCounts,
       sessionTypeCounts,
       sessions,
+      healthScore:     health.score,
+      healthGrade:     health.grade,
+      healthBreakdown: health.breakdown,
     };
   }).sort((a, b) => new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime());
 
@@ -295,13 +391,33 @@ app.get('/api/v1/projects', (_req, res) => {
 });
 
 app.get('/api/v1/configs', (_req, res) => {
-  res.json(loadConfigs());
+  const configs     = loadConfigs();
+  const hookScripts = loadHookScripts();
+  const skills      = loadSkillsAndCommands();
+
+  const enrichedProjects = configs.projects.map(p => ({
+    ...p,
+    claudeMdLint: p.claudeMd ? claudeMdLinter(p.claudeMd) : undefined,
+  }));
+
+  res.json({
+    ...configs,
+    projects:          enrichedProjects,
+    hookScripts,
+    skills,
+    globalClaudeMdLint: configs.globalClaudeMd ? claudeMdLinter(configs.globalClaudeMd) : null,
+  });
 });
 
 app.get('/api/v1/session-files', (req, res) => {
   const cwd = String(req.query['cwd'] ?? '').trim();
   if (!cwd) { res.status(400).json({ error: 'cwd required' }); return; }
   const dir = resolve(cwd);
+  const home = process.env['HOME'] ?? '';
+  if (home && !dir.startsWith(home)) {
+    res.status(403).json({ error: 'Path outside home directory' });
+    return;
+  }
   const candidates = [
     { label: 'Global CLAUDE.md',              path: join(CLAUDE_DIR, 'CLAUDE.md') },
     { label: 'Global settings.json',          path: join(CLAUDE_DIR, 'settings.json') },
@@ -320,6 +436,20 @@ app.get('/api/v1/session-files', (req, res) => {
   res.json(files);
 });
 
+// ── MDD Dashboard endpoint ─────────────────────────────────────────────────
+
+const MDD_DIR = join(process.cwd(), '.mdd');
+
+app.get('/api/v1/mdd', (_req, res) => {
+  const data = buildMddDashboard(MDD_DIR);
+  res.json(data);
+});
+
+app.get('/api/v1/mdd/installed', (_req, res) => {
+  const mddCmd = join(homedir(), '.claude', 'commands', 'mdd.md');
+  res.json({ installed: existsSync(mddCmd) });
+});
+
 // ── Terminal REST endpoints ────────────────────────────────────────────────
 
 app.get('/api/v1/terminals', (_req, res) => {
@@ -328,7 +458,7 @@ app.get('/api/v1/terminals', (_req, res) => {
 
 // ── WebSocket server ───────────────────────────────────────────────────────
 
-const TERMINAL_ENABLED = process.env['TERMINAL_ENABLED'] === '1' || process.env['TERMINAL_ENABLED'] === 'true';
+const TERMINAL_ENABLED = process.env['TERMINAL_ENABLED'] !== '0' && process.env['TERMINAL_ENABLED'] !== 'false';
 
 const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 const clients = new Set<WebSocket>();
@@ -398,7 +528,13 @@ wss.on('connection', (ws, req) => {
 
     switch (msg.type) {
       case 'terminal:create': {
-        if (!TERMINAL_ENABLED) break;
+        if (!TERMINAL_ENABLED) {
+          if (isTerminalCreatePayload(msg.data) && ws.readyState === WebSocket.OPEN) {
+            const errPayload = { terminalId: msg.data.terminalId, data: '\r\n\x1b[31m[wlaudio] Terminal feature is disabled (TERMINAL_ENABLED=false). Remove that env var to enable it.\x1b[0m\r\n' };
+            ws.send(JSON.stringify({ type: 'terminal:output', data: errPayload }));
+          }
+          break;
+        }
         // Reject if Origin is missing or not localhost (prevents cross-site WS hijacking)
         if (!isLocalhostOrigin(req.headers['origin'])) break;
         if (!isTerminalCreatePayload(msg.data)) break;
@@ -512,6 +648,10 @@ emitter.on('plans:updated', (plans: Plan[]) => {
 emitter.on('meta:updated', (sessionMeta: Record<string, SessionMeta>, sessionFacets: Record<string, SessionFacets>) => {
   const data: MetaUpdatedData = { sessionMeta, sessionFacets };
   broadcast({ type: 'meta_updated', data });
+});
+
+emitter.on('mdd:updated', () => {
+  broadcast({ type: 'mdd_updated', data: null });
 });
 
 // ── Helpers ────────────────────────────────────────────────────────────────

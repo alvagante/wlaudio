@@ -30,6 +30,21 @@ Wlaudio reads directly from `~/.claude/` and streams live data to a browser dash
 | **CLAUDE FILES button** | View all config files affecting the session (global + project `CLAUDE.md`, `settings.json`, `settings.local.json`) with full filesystem paths; works for active and ended sessions |
 | **Global sparkline** | 14-day message activity bar chart from `stats-cache.json` |
 
+### MDD Dashboard (`/mdd.html`)
+
+Requires MDD to be installed globally (`~/.claude/commands/mdd.md`). Reads `.mdd/` from the project root.
+
+| Panel | Data |
+|-------|------|
+| **Status bar** | Doc counts by drift state: in-sync · drifted · broken ref · untracked |
+| **Docs list** | Feature docs with drift badge and phase; click to read full content |
+| **Audits list** | Audit reports by type (report · scan · flow · notes); click to read |
+| **Dependency graph** | Visual `depends_on` graph from MDD frontmatter |
+
+### Session Timeline (`/timeline.html`)
+
+Chronological stream view of any session — select a session from the sidebar, then browse every user message and tool call in order. Filter by errors, user messages, and tool calls independently.
+
 ### Terminal page (`/terminal.html`)
 
 | Feature | Detail |
@@ -38,7 +53,7 @@ Wlaudio reads directly from `~/.claude/` and streams live data to a browser dash
 | **Multi-tab** | Open unlimited terminal tabs; each shows the project directory name |
 | **Project selector** | Pick a working directory from your project list or type any path; deep-linkable via `?cwd=` |
 | **Resize** | Terminal reflows to fill available space automatically |
-| **Security** | Disabled by default — set `TERMINAL_ENABLED=1` to enable; restricted to localhost origins |
+| **Security** | Enabled by default; set `TERMINAL_ENABLED=0` to disable; restricted to localhost origins |
 
 ### Analytics page (`/analytics.html`)
 
@@ -60,11 +75,15 @@ Aggregated view per working directory. Select a project to see session count, to
 
 ### Configs page (`/configs.html`)
 
-Reads global and per-project `settings.json` files and renders MCP servers, hooks (grouped by event and matcher), allow/deny permission rules, and model overrides. Project cards show hook and rule counts at a glance.
+Reads global and per-project `settings.json` files and renders MCP servers, hooks (grouped by event and matcher), allow/deny permission rules, and model overrides. Project cards show hook and rule counts at a glance. A files panel lets you browse `CLAUDE.md`, `settings.json`, hook scripts, skills, and commands per project.
 
 ### Themes page (`/themes.html`)
 
 Live theme picker with 17 colour schemes — Catppuccin variants, Tokyo Night, Gruvbox, Nord, Dracula, Solarized, GitHub Light, and more. Click to apply; choice persists in `localStorage`.
+
+### Learning Mode
+
+A "Learn Mode" toggle in the sidebar (available on all pages) activates hover tooltips and click-to-expand detail panels for every major UI element. Useful for understanding what each metric means. Preference persists in `localStorage`.
 
 ---
 
@@ -85,13 +104,68 @@ Open **http://localhost:4242** — the dashboard connects automatically and begi
 PORT=8080 npm run dev
 ```
 
-### With the terminal enabled
+### Disable the terminal
 
 ```bash
-TERMINAL_ENABLED=1 npm run dev
+TERMINAL_ENABLED=0 npm run dev
 ```
 
-The terminal page (`/terminal.html`) is disabled by default. When enabled it spawns a login shell via `node-pty` — only enable it when running locally on a trusted machine.
+The terminal page (`/terminal.html`) is **enabled by default**. It spawns a login shell via `node-pty` restricted to localhost origins — set `TERMINAL_ENABLED=0` if you want to disable it (e.g. when sharing the port on a non-trusted network).
+
+---
+
+## Docker (no local install required)
+
+Pull the pre-built image from Docker Hub and run it — no git clone, no npm, no compilation:
+
+```bash
+docker run --rm -p 4242:4242 \
+  -v "${HOME}/.claude:/root/.claude:ro" \
+  -e HOME=/root \
+  lab42it/wlaudio:latest
+```
+
+Or with Docker Compose — save a `docker-compose.yml` with:
+
+```yaml
+services:
+  wlaudio:
+    image: lab42it/wlaudio:latest
+    ports:
+      - "4242:4242"
+    volumes:
+      - "${HOME}/.claude:/root/.claude:ro"
+    environment:
+      - HOME=/root
+      - TERMINAL_ENABLED=0
+```
+
+Then run:
+
+```bash
+docker compose up
+```
+
+Open **http://localhost:4242** — the dashboard reads your `~/.claude/` via a read-only volume mount. Nothing is installed on your host system.
+
+**What's available in Docker mode:**
+
+| Feature | Available |
+|---------|-----------|
+| Session dashboard, analytics, timeline | Yes |
+| Projects, configs, themes, MDD | Yes |
+| Terminal page (`/terminal.html`) | No — PTY spawning is disabled inside containers |
+
+The terminal feature requires spawning a shell with access to your host's `PATH` and `claude` binary, which is not practical inside a container. All other features work identically.
+
+**Building from source** (if you want to customise the image):
+
+```bash
+git clone git@github.com:alvagante/wlaudio.git
+cd wlaudio
+docker build -t wlaudio .
+docker run --rm -p 4242:4242 -v "${HOME}/.claude:/root/.claude:ro" -e HOME=/root wlaudio
+```
 
 ---
 
@@ -106,7 +180,7 @@ The terminal page (`/terminal.html`) is disabled by default. When enabled it spa
 1. **Watcher** (`src/watcher.ts`) — [chokidar](https://github.com/paulmillr/chokidar) watches `~/.claude/sessions/` for process changes. Every 2 seconds it tail-reads any active `.jsonl` files for new turns.
 2. **Parser** (`src/parser.ts`) — Parses JSONL turns, extracts tool calls with timing, computes token totals, and estimates cost.
 3. **Server** (`src/server.ts`) — Express serves `public/` as static files. A WebSocket endpoint at `/ws` broadcasts parsed events to all connected clients and handles terminal I/O messages.
-4. **Terminal** (`src/terminal.ts`) — `TerminalManager` wraps `node-pty` to spawn, resize, and kill PTY processes; emits `output` and `exit` events picked up by the WebSocket layer. Enabled via `TERMINAL_ENABLED=1`.
+4. **Terminal** (`src/terminal.ts`) — `TerminalManager` wraps `node-pty` to spawn, resize, and kill PTY processes; emits `output` and `exit` events picked up by the WebSocket layer. Enabled by default; set `TERMINAL_ENABLED=0` to disable.
 5. **Frontend** (`public/app.js`) — Vanilla JS with Chart.js (CDN). Reconnects automatically on disconnect. No build step.
 
 ---
@@ -135,6 +209,8 @@ wlaudio/
 │   ├── watcher.ts       chokidar file watcher + EventEmitter
 │   ├── server.ts        Express + WebSocket server
 │   ├── terminal.ts      PTY manager (node-pty wrapper)
+│   ├── mdd.ts           MDD dashboard builder (docs, audits, graph, drift)
+│   ├── mdd-parse.ts     MDD frontmatter parser
 │   ├── data.ts          Loaders for history, todos, plans, meta, facets
 │   └── index.ts         Entry point, graceful shutdown
 ├── public/
@@ -142,9 +218,11 @@ wlaudio/
 │   ├── sessions.html    Sessions browser
 │   ├── analytics.html   Cross-session analytics
 │   ├── projects.html    Per-project aggregates
-│   ├── configs.html     Settings viewer (MCP, hooks, permissions)
+│   ├── configs.html     Settings viewer (MCP, hooks, permissions, files)
 │   ├── themes.html      Theme picker
 │   ├── terminal.html    Browser terminal (xterm.js + node-pty)
+│   ├── timeline.html    Session timeline (messages + tool calls)
+│   ├── mdd.html         MDD dashboard (docs, audits, graph)
 │   ├── app.js           WebSocket client + state
 │   ├── dashboard.js     Dashboard rendering
 │   ├── render.js        Metrics, charts, tool timeline, popups
@@ -155,6 +233,12 @@ wlaudio/
 │   ├── projects.js      Projects page
 │   ├── configs.js       Configs page
 │   ├── terminal.js      Terminal page (xterm.js client)
+│   ├── timeline.js      Timeline page
+│   ├── mdd.js           MDD page entry point
+│   ├── mdd-render.js    MDD rendering (status bar, lists, graph, detail)
+│   ├── mdd-state.js     MDD page state
+│   ├── nav.js           Shared sidebar nav (all pages)
+│   ├── learning.js      Learning mode (tooltips + detail panels)
 │   ├── theme.js         Theme loader (no-flash)
 │   ├── utils.js         Shared formatters and helpers
 │   ├── shared.css       Shared palette, sidebar layout, utilities
@@ -163,7 +247,10 @@ wlaudio/
 │   ├── analytics.css    Analytics page styles
 │   ├── projects.css     Projects page styles
 │   ├── configs.css      Configs page styles
-│   └── terminal.css     Terminal page styles
+│   ├── terminal.css     Terminal page styles
+│   ├── timeline.css     Timeline page styles
+│   ├── mdd-layout.css   MDD page layout
+│   └── mdd-components.css MDD component styles
 └── docs/
     └── screenshot.png
 ```

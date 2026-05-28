@@ -400,6 +400,160 @@ function renderVelocityChart(dailyCodeVelocity) {
   });
 }
 
+// ── Tool color map (local copy — analytics.js is not a module) ───────────
+
+const TOOL_COLOR_MAP = {
+  Bash: '#f38ba8', Read: '#89b4fa', Write: '#a6e3a1', Edit: '#94e2d5',
+  Grep: '#f9e2af', Glob: '#fab387', Agent: '#cba6f7', WebFetch: '#89dceb',
+  WebSearch: '#b4befe', TodoWrite: '#a6e3a1', TodoRead: '#89b4fa',
+  Task: '#cba6f7', ToolSearch: '#f9e2af',
+};
+
+function toolColor(name) {
+  for (const [k, v] of Object.entries(TOOL_COLOR_MAP)) {
+    if (name.startsWith(k)) return v;
+  }
+  if (name.startsWith('mcp__')) return '#b4befe';
+  return '#585b70';
+}
+
+// ── Cost forecast ─────────────────────────────────────────────────────────
+
+function renderCostForecast(data) {
+  const rate    = data.burnRateDaily    ?? 0;
+  const weekly  = data.forecastWeeklyCost  ?? 0;
+  const monthly = data.forecastMonthlyCost ?? 0;
+  const trend   = data.burnRateTrend    ?? 'flat';
+
+  const burnEl  = document.getElementById('an-burn-rate');
+  const trendEl = document.getElementById('an-burn-trend');
+  const weekEl  = document.getElementById('an-forecast-weekly');
+  const monEl   = document.getElementById('an-forecast-monthly');
+
+  if (!burnEl) return;
+
+  burnEl.textContent  = rate > 0 ? `$${rate.toFixed(4)}/day` : '—';
+  weekEl.textContent  = weekly  > 0 ? `~$${weekly.toFixed(2)}`  : '—';
+  monEl.textContent   = monthly > 0 ? `~$${monthly.toFixed(2)}` : '—';
+
+  if (trendEl) {
+    const map = { up: { icon: '↑', color: 'var(--red)' }, down: { icon: '↓', color: 'var(--green)' }, flat: { icon: '→', color: 'var(--dim)' } };
+    const t   = map[trend] ?? map.flat;
+    trendEl.textContent = t.icon;
+    trendEl.style.color = t.color;
+  }
+}
+
+// ── Tool usage heatmap ────────────────────────────────────────────────────
+
+function renderToolHeatmap(toolTotals) {
+  const wrap = document.getElementById('an-tool-heatmap-wrap');
+  if (!wrap) return;
+
+  const entries = Object.entries(toolTotals ?? {})
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 15);
+
+  if (!entries.length) {
+    wrap.innerHTML = '<div class="an-empty">No tool usage data yet</div>';
+    return;
+  }
+
+  wrap.innerHTML = '<canvas id="an-tool-heatmap-chart"></canvas>';
+  const ctx = document.getElementById('an-tool-heatmap-chart').getContext('2d');
+
+  const labels = entries.map(([name]) => name);
+  const values = entries.map(([, v])  => v);
+  const colors = labels.map(toolColor);
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data:            values,
+        backgroundColor: colors.map(c => c + '88'),
+        borderColor:     colors,
+        borderWidth:     1,
+        borderRadius:    2,
+      }],
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        legend:  { display: false },
+        tooltip: { callbacks: { label: (i) => ` ${fmtNum(i.parsed.x)} calls` } },
+      },
+      scales: {
+        x: { grid: { color: '#31324444' }, ticks: { color: '#585b70', font: { size: 10 }, callback: v => fmtNum(v) }, beginAtZero: true },
+        y: { grid: { display: false },     ticks: { color: '#a6adc8', font: { size: 10 } } },
+      },
+    },
+  });
+}
+
+// ── Tool activity by hour ─────────────────────────────────────────────────
+
+function renderToolByHour(toolByHour, toolTotals) {
+  const canvas = document.getElementById('an-tool-hour-chart');
+  if (!canvas) return;
+
+  const sortedTools = Object.entries(toolTotals ?? {})
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name]) => name);
+
+  if (!sortedTools.length || !Object.keys(toolByHour ?? {}).length) {
+    canvas.parentElement.innerHTML = '<div class="an-empty">No hourly tool data yet</div>';
+    return;
+  }
+
+  const hours    = Array.from({ length: 24 }, (_, i) => String(i));
+  const datasets = sortedTools.map((tool, idx) => {
+    const hourData = toolByHour[tool] ?? new Array(24).fill(0);
+    const color    = toolColor(tool);
+    return {
+      label:           tool,
+      data:            hours.map(h => hourData[Number(h)] ?? 0),
+      backgroundColor: color + '88',
+      borderColor:     color,
+      borderWidth:     1,
+      borderRadius:    2,
+      stack:           'tools',
+    };
+  });
+
+  new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: { labels: hours, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'bottom',
+          labels: { color: '#a6adc8', font: { size: 10 }, boxWidth: 10, padding: 8 },
+        },
+        tooltip: {
+          callbacks: {
+            title:  (items) => `Hour ${items[0].label}:00`,
+            label:  (item)  => ` ${item.dataset.label}: ${fmtNum(item.parsed.y)}`,
+          },
+        },
+      },
+      scales: {
+        x: { stacked: true, grid: { color: '#31324422' }, ticks: { color: '#585b70', font: { size: 10 }, maxTicksLimit: 8 } },
+        y: { stacked: true, grid: { color: '#31324444' }, ticks: { color: '#585b70', font: { size: 10 }, callback: v => fmtNum(v) }, beginAtZero: true },
+      },
+    },
+  });
+}
+
 // ── Quality signal bars ───────────────────────────────────────────────────
 
 const HELPFULNESS_ORDER = ['very_helpful', 'helpful', 'somewhat_helpful', 'not_helpful'];
@@ -472,8 +626,11 @@ async function init() {
   renderOutcomeChart(data.outcomeCounts ?? {});
   renderLanguageBars(data.languageTotals ?? {});
   renderModelTable(data.modelAnalytics ?? {});
+  renderCostForecast(data);
   renderDailyCostChart(data.dailyCosts ?? []);
   renderVelocityChart(data.dailyCodeVelocity ?? []);
+  renderToolHeatmap(data.toolTotals ?? {});
+  renderToolByHour(data.toolByHour ?? {}, data.toolTotals ?? {});
   renderQualityBars('an-helpfulness-bars',  data.helpfulnessCounts      ?? {}, HELPFULNESS_COLOR,  HELPFULNESS_ORDER);
   renderQualityBars('an-satisfaction-bars', data.userSatisfactionCounts ?? {}, SATISFACTION_COLOR, null);
   renderQualityBars('an-friction-bars',     data.frictionCounts         ?? {}, null,               null);

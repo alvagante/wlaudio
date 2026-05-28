@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wlaudio — MDD Dashboard</title>
+  <link rel="stylesheet" href="shared.css" />
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="themes.css" />
+  <link rel="stylesheet" href="mdd-layout.css" />
+  <link rel="stylesheet" href="mdd-components.css" />
+</head>
+<body>
+
+  <div class="app-layout">
+
+    <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <a href="/themes.html" class="sb-logo-icon">⬡</a>
+        <span class="sb-logo-text">WLAUDIO</span>
+        <span class="sb-version">0.6.0</span>
+      </div>
+
+      <nav id="sidebar-nav" class="sidebar-nav"></nav>
+
+      <div class="sidebar-bottom">
+        <div class="conn-indicator">
+          <span id="mdd-conn-dot" class="dot disconnected"></span>
+          <span id="mdd-conn-label">OFFLINE</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── MDD layout ───────────────────────────────────────────────────── -->
+    <div class="mdd-layout">
+
+      <!-- Status bar -->
+      <div class="mdd-statusbar">
+        <div class="mdd-sb-item">
+          <span class="mdd-sb-label">DOCS</span>
+          <span id="mdd-sb-docs" class="mdd-sb-val">—</span>
+        </div>
+        <div class="mdd-sb-sep"></div>
+        <div class="mdd-sb-item">
+          <span class="mdd-sb-label">IN SYNC</span>
+          <span id="mdd-sb-sync" class="mdd-sb-val green">—</span>
+        </div>
+        <div class="mdd-sb-item">
+          <span class="mdd-sb-label">DRIFTED</span>
+          <span id="mdd-sb-drift" class="mdd-sb-val yellow">—</span>
+        </div>
+        <div class="mdd-sb-item">
+          <span class="mdd-sb-label">BROKEN</span>
+          <span id="mdd-sb-broken" class="mdd-sb-val red">—</span>
+        </div>
+        <div class="mdd-sb-item">
+          <span class="mdd-sb-label">UNTRACKED</span>
+          <span id="mdd-sb-untracked" class="mdd-sb-val dim">—</span>
+        </div>
+        <div class="mdd-sb-sep"></div>
+        <div class="mdd-sb-item">
+          <span class="mdd-sb-label">ISSUES</span>
+          <span id="mdd-sb-issues" class="mdd-sb-val">—</span>
+        </div>
+        <div class="mdd-sb-item">
+          <span class="mdd-sb-label">AUDITS</span>
+          <span id="mdd-sb-audits" class="mdd-sb-val">—</span>
+        </div>
+        <div class="mdd-sb-spacer"></div>
+        <div class="mdd-sb-item">
+          <button id="mdd-refresh-btn" class="mdd-refresh-btn" title="Refresh dashboard">↻</button>
+        </div>
+      </div>
+
+      <!-- Body: left list + right detail -->
+      <div class="mdd-body">
+
+        <!-- Left panel -->
+        <aside class="mdd-list-panel">
+
+          <!-- Feature Docs section -->
+          <div class="mdd-section-header">
+            <span>FEATURE DOCS</span>
+            <span id="mdd-doc-count" class="mdd-count-badge">0</span>
+          </div>
+          <div id="mdd-doc-list" class="mdd-item-list">
+            <div class="mdd-empty-state">Loading…</div>
+          </div>
+
+          <!-- Audit Reports section -->
+          <div class="mdd-section-header mdd-section-header--mt">
+            <span>AUDIT REPORTS</span>
+            <span id="mdd-audit-count" class="mdd-count-badge">0</span>
+          </div>
+          <div id="mdd-audit-list" class="mdd-item-list"></div>
+
+          <!-- Dependency Graph section -->
+          <div class="mdd-section-header mdd-section-header--mt mdd-section-header--collapsible" id="mdd-graph-toggle">
+            <span>DEPENDENCY GRAPH</span>
+            <span class="mdd-collapse-icon">▾</span>
+          </div>
+          <div id="mdd-graph-body" class="mdd-graph-body">
+            <pre id="mdd-graph-pre" class="mdd-graph-pre"></pre>
+          </div>
+
+        </aside>
+
+        <!-- Right panel -->
+        <main class="mdd-detail-panel" id="mdd-detail-panel">
+          <div id="mdd-detail-content" class="mdd-detail-content">
+            <!-- Default: startup context -->
+            <div class="mdd-empty-state">Loading…</div>
+          </div>
+        </main>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Markdown rendering (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+  <script src="nav.js"></script>
+  <script src="learning.js"></script>
+  <script type="module" src="mdd.js"></script>
+
+</body>
+</html>
